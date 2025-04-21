@@ -8,65 +8,60 @@ import {
   ExclamationCircleIcon,
 } from "@heroicons/react/24/outline";
 import { supabase } from "@/lib/supabaseClient";
-import { Session } from "@supabase/supabase-js";
 
-interface ReviewFormProps {
+interface EditReviewFormProps {
   isOpen: boolean;
   onClose: () => void;
-  restaurantId: string;
+  reviewId: string;
   restaurantName: string;
+  initialRating: number;
+  initialContent: string;
+  initialUserSentiment: "positive" | "negative" | "mixed" | null;
+  initialMentionedMenuItems: string[];
+  initialRecommendedDishes: string[];
+  onReviewUpdate: () => void;
 }
 
-export default function ReviewForm({
+export default function EditReviewForm({
   isOpen,
   onClose,
-  restaurantId,
+  reviewId,
   restaurantName,
-}: ReviewFormProps) {
-  const [rating, setRating] = useState(0);
-  const [hoverRating, setHoverRating] = useState(0);
-  const [content, setContent] = useState("");
-  const [userSentiment, setUserSentiment] = useState<"positive" | "negative" | "mixed" | null>(
-    null
+  initialRating,
+  initialContent,
+  initialUserSentiment,
+  initialMentionedMenuItems,
+  initialRecommendedDishes,
+  onReviewUpdate,
+}: EditReviewFormProps) {
+  const [rating, setRating] = useState(initialRating);
+  const [content, setContent] = useState(initialContent);
+  const [userSentiment, setUserSentiment] = useState(initialUserSentiment);
+  const [mentionedMenuItemsInput, setMentionedMenuItemsInput] = useState(
+    initialMentionedMenuItems.join(", ")
   );
-  const [mentionedMenuItemsInput, setMentionedMenuItemsInput] = useState("");
-  const [recommendedDishesInput, setRecommendedDishesInput] = useState("");
+  const [recommendedDishesInput, setRecommendedDishesInput] = useState(
+    initialRecommendedDishes.join(", ")
+  );
+  const [hoverRating, setHoverRating] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [nickname, setNickname] = useState<string | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
 
+  // Update state if initial props change (e.g., editing a different review)
   useEffect(() => {
-    let isMounted = true;
-    async function fetchUserSession() {
-      const {
-        data: { session: currentSession },
-      } = await supabase.auth.getSession();
-      if (isMounted && currentSession) {
-        setSession(currentSession);
-        const { data: profileData, error: profileError } = await supabase
-          .from("profiles")
-          .select("nickname")
-          .eq("id", currentSession.user.id)
-          .single();
-
-        if (profileError) {
-          console.error("Error fetching profile:", profileError);
-          setError("Failed to load user information.");
-        } else if (profileData) {
-          setNickname(profileData.nickname);
-        }
-      }
-    }
-
-    if (isOpen) {
-      fetchUserSession();
-    }
-
-    return () => {
-      isMounted = false;
-    };
-  }, [isOpen]);
+    setRating(initialRating);
+    setContent(initialContent);
+    setUserSentiment(initialUserSentiment);
+    setMentionedMenuItemsInput(initialMentionedMenuItems.join(", "));
+    setRecommendedDishesInput(initialRecommendedDishes.join(", "));
+  }, [
+    reviewId,
+    initialRating,
+    initialContent,
+    initialUserSentiment,
+    initialMentionedMenuItems,
+    initialRecommendedDishes,
+  ]);
 
   const parseTags = (input: string): string[] => {
     return input
@@ -80,30 +75,6 @@ export default function ReviewForm({
     setIsSubmitting(true);
     setError(null);
 
-    if (!session?.user) {
-      setError("You need to be logged in to submit a review.");
-      setIsSubmitting(false);
-      return;
-    }
-
-    if (!nickname) {
-      setError("Could not retrieve user nickname. Please try again.");
-      setIsSubmitting(false);
-      return;
-    }
-
-    if (rating === 0) {
-      setError("Please select a rating.");
-      setIsSubmitting(false);
-      return;
-    }
-
-    if (!content.trim()) {
-      setError("Please write your review content.");
-      setIsSubmitting(false);
-      return;
-    }
-
     if (!userSentiment) {
       setError("Please select your overall sentiment about the experience.");
       setIsSubmitting(false);
@@ -114,63 +85,30 @@ export default function ReviewForm({
     const recommendedDishes = parseTags(recommendedDishesInput);
 
     try {
-      const service = new google.maps.places.PlacesService(document.createElement("div"));
-      service.getDetails(
-        {
-          placeId: restaurantId,
-          fields: ["formatted_address"],
-        },
-        async (place, status) => {
-          if (status !== google.maps.places.PlacesServiceStatus.OK || !place) {
-            console.error("PlacesService error:", status);
-            setError("Failed to fetch restaurant details. Please try again.");
-            setIsSubmitting(false);
-            return;
-          }
+      const { error: updateError } = await supabase
+        .from("reviews")
+        .update({
+          rating: rating,
+          content: content.trim(),
+          user_sentiment: userSentiment,
+          mentioned_menu_items: mentionedMenuItems,
+          recommended_dishes: recommendedDishes,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", reviewId);
 
-          const reviewData = {
-            user_id: session.user.id,
-            user_nickname: nickname,
-            place_id: restaurantId,
-            restaurant_name: restaurantName,
-            restaurant_address: place.formatted_address || "",
-            content: content.trim(),
-            rating: rating,
-            user_sentiment: userSentiment,
-            mentioned_menu_items: mentionedMenuItems,
-            recommended_dishes: recommendedDishes,
-          };
+      if (updateError) {
+        throw new Error(updateError.message);
+      }
 
-          console.log("Submitting review:", reviewData);
-
-          const { error: submitError } = await supabase.from("reviews").insert(reviewData);
-
-          if (submitError) {
-            console.error("Supabase insert error:", submitError);
-            throw new Error(submitError.message || "Failed to submit review.");
-          }
-
-          console.log("Review submitted successfully!");
-          handleClose();
-        }
-      );
+      onReviewUpdate(); // Refresh the reviews list in the parent component
+      onClose(); // Close the modal
     } catch (err: any) {
-      console.error("Review submission process error:", err);
-      setError(err.message || "An error occurred while submitting your review. Please try again.");
+      console.error("Error updating review:", err);
+      setError(err.message || "Failed to update review. Please try again.");
+    } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleClose = () => {
-    setRating(0);
-    setContent("");
-    setHoverRating(0);
-    setUserSentiment(null);
-    setMentionedMenuItemsInput("");
-    setRecommendedDishesInput("");
-    setError(null);
-    setIsSubmitting(false);
-    onClose();
   };
 
   if (!isOpen) return null;
@@ -180,10 +118,10 @@ export default function ReviewForm({
       <div className='bg-white dark:bg-gray-800 rounded-2xl w-full max-w-lg mx-4 my-auto overflow-hidden shadow-xl transform transition-all'>
         <div className='flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700'>
           <h2 className='text-xl font-semibold text-gray-900 dark:text-white'>
-            Write a Review for {restaurantName}
+            Edit Review for {restaurantName}
           </h2>
           <button
-            onClick={handleClose}
+            onClick={onClose} // Changed to handleClose to reset state?
             className='text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 transition-colors'>
             <XMarkIcon className='w-6 h-6' />
           </button>
@@ -217,16 +155,16 @@ export default function ReviewForm({
           {/* Review Content */}
           <div className='space-y-2'>
             <label
-              htmlFor='review-content'
+              htmlFor='edit-review-content'
               className='block text-sm font-medium text-gray-700 dark:text-gray-300'>
               Your Review *
             </label>
             <textarea
-              id='review-content'
+              id='edit-review-content'
               rows={4}
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder={`Share your experience at ${restaurantName}...`}
+              placeholder='Update your review...'
               className='w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400'
               required
             />
@@ -265,12 +203,12 @@ export default function ReviewForm({
           {/* Mentioned Menu Items */}
           <div className='space-y-2'>
             <label
-              htmlFor='mentioned-items'
+              htmlFor='edit-mentioned-items'
               className='block text-sm font-medium text-gray-700 dark:text-gray-300'>
               Mentioned Menu Items (Optional)
             </label>
             <input
-              id='mentioned-items'
+              id='edit-mentioned-items'
               type='text'
               value={mentionedMenuItemsInput}
               onChange={(e) => setMentionedMenuItemsInput(e.target.value)}
@@ -282,12 +220,12 @@ export default function ReviewForm({
           {/* Recommended Dishes */}
           <div className='space-y-2'>
             <label
-              htmlFor='recommended-dishes'
+              htmlFor='edit-recommended-dishes'
               className='block text-sm font-medium text-gray-700 dark:text-gray-300'>
               Recommended Dishes (Optional)
             </label>
             <input
-              id='recommended-dishes'
+              id='edit-recommended-dishes'
               type='text'
               value={recommendedDishesInput}
               onChange={(e) => setRecommendedDishesInput(e.target.value)}
@@ -305,7 +243,7 @@ export default function ReviewForm({
           <div className='flex gap-4 pt-2'>
             <button
               type='button'
-              onClick={handleClose}
+              onClick={onClose}
               className='flex-1 px-4 py-3 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors'>
               Cancel
             </button>
@@ -313,7 +251,7 @@ export default function ReviewForm({
               type='submit'
               disabled={isSubmitting}
               className='flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors'>
-              {isSubmitting ? "Submitting..." : "Submit Review"}
+              {isSubmitting ? "Updating..." : "Update Review"}
             </button>
           </div>
         </form>

@@ -10,7 +10,7 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   return (
-    <div className='flex flex-col min-h-screen bg-gradient-to-b from-blue-50 to-white'>
+    <div className='flex flex-col min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800 transition-colors'>
       <Head>
         <title>Before You Go</title>
         <meta name='description' content='AI-powered restaurant review analysis for travelers.' />

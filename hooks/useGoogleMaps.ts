@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLoadScript } from "@react-google-maps/api";
 
 const libraries: "places"[] = ["places"];
@@ -6,6 +6,26 @@ const libraries: "places"[] = ["places"];
 export function useGoogleMaps() {
   const [autocompleteInstance, setAutocompleteInstance] =
     useState<google.maps.places.Autocomplete | null>(null);
+  const [apiKeyError, setApiKeyError] = useState<string | null>(null);
+
+  // API 키 검증
+  useEffect(() => {
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    if (!apiKey) {
+      setApiKeyError("Google Maps API 키가 설정되지 않았습니다.");
+      console.error("Google Maps API 키가 없습니다. .env.local 파일을 확인해주세요.");
+      return;
+    }
+
+    // 개발 환경에서만 API 키 형식 검증
+    if (process.env.NODE_ENV === "development") {
+      if (!apiKey.match(/^[A-Za-z0-9_-]{39}$/)) {
+        setApiKeyError("유효하지 않은 API 키 형식입니다.");
+        console.error("Google Maps API 키 형식이 올바르지 않습니다.");
+        return;
+      }
+    }
+  }, []);
 
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
@@ -21,6 +41,11 @@ export function useGoogleMaps() {
     return new Promise((resolve, reject) => {
       if (!isLoaded) {
         reject(new Error("Google Maps not loaded"));
+        return;
+      }
+
+      if (apiKeyError) {
+        reject(new Error(apiKeyError));
         return;
       }
 
@@ -46,6 +71,10 @@ export function useGoogleMaps() {
       throw new Error("Google Maps not loaded");
     }
 
+    if (apiKeyError) {
+      throw new Error(apiKeyError);
+    }
+
     const geocoder = new google.maps.Geocoder();
     const addressToGeocode = locationText.toLowerCase().includes("sydney")
       ? locationText
@@ -64,6 +93,7 @@ export function useGoogleMaps() {
   return {
     isLoaded,
     loadError,
+    apiKeyError,
     autocompleteInstance,
     onAutocompleteLoad,
     getPlaceDetails,

@@ -25,12 +25,23 @@ function MyApp({ Component, pageProps }: AppProps) {
     ) {
       loadGoogleMapsScript();
     }
+
+    // Check system preference on initial load
+    if (typeof window !== "undefined") {
+      const isDark =
+        localStorage.getItem("theme") === "dark" ||
+        (!localStorage.getItem("theme") &&
+          window.matchMedia("(prefers-color-scheme: dark)").matches);
+      document.documentElement.classList.toggle("dark", isDark);
+    }
   }, []);
 
   return (
-    <Layout>
-      <Component {...pageProps} />
-    </Layout>
+    <div className='min-h-screen bg-white dark:bg-gray-900 dark:text-white transition-colors'>
+      <Layout>
+        <Component {...pageProps} />
+      </Layout>
+    </div>
   );
 }
 

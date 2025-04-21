@@ -1,36 +1,36 @@
+import React from "react";
+import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
+
 interface SearchInputProps {
   value: string;
   onChange: (value: string) => void;
   onSearch: () => void;
-  isLoading?: boolean;
+  placeholder?: string;
 }
 
 export default function SearchInput({
   value,
   onChange,
   onSearch,
-  isLoading = false,
+  placeholder = "Search restaurants...",
 }: SearchInputProps) {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      onSearch();
+    }
+  };
+
   return (
-    <div className='flex gap-2'>
+    <div className='relative'>
       <input
         type='text'
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder='Search by location or restaurant name'
-        className='flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            onSearch();
-          }
-        }}
+        onKeyDown={handleKeyDown}
+        placeholder={placeholder}
+        className='w-full pl-12 pr-4 py-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors'
       />
-      <button
-        onClick={onSearch}
-        disabled={isLoading}
-        className='px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50'>
-        {isLoading ? "Searching..." : "Search"}
-      </button>
+      <MagnifyingGlassIcon className='absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500' />
     </div>
   );
 }

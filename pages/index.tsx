@@ -1,8 +1,9 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import Head from "next/head";
 import { ChartBarIcon } from "@heroicons/react/24/outline";
-import { useLoadScript } from "@react-google-maps/api";
+import { useLoadScript, Libraries } from "@react-google-maps/api";
 import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/router";
 import HomeHeader from "../components/home/HomeHeader";
 import SearchSection from "../components/home/SearchSection";
 import RestaurantResults from "../components/home/RestaurantResults";
@@ -10,8 +11,9 @@ import DirectSearchSection from "../components/home/DirectSearchSection";
 import AnalysisResults from "../components/home/AnalysisResults";
 import { useRestaurantSearch } from "../hooks/useRestaurantSearch";
 import { useReviewAnalysis } from "../hooks/useReviewAnalysis";
+import axios from "axios";
 
-const libraries: ("places" | "geometry")[] = ["places", "geometry"];
+const libraries: Libraries = ["places"];
 
 // Animation variants
 const fadeInUp = {
@@ -33,6 +35,7 @@ function HomeContent() {
     language: "en",
   });
 
+  const router = useRouter();
   const topRef = useRef<HTMLDivElement>(null);
   const [directUrlInput, setDirectUrlInput] = useState("");
   const [activeTab, setActiveTab] = useState<"search" | "direct">("search");
@@ -52,20 +55,108 @@ function HomeContent() {
   } = useRestaurantSearch(isLoaded);
 
   const {
-    isLoading,
+    isAnalyzing,
     result,
+    detailedResult,
     error: analysisError,
+    reviews,
     selectedRestaurant,
     reviewResultRef,
     handleSubmit,
-    handleRestaurantSelect,
+    handleGetDetailedAnalysisFromPlaceId,
+    handleRestaurantSelect: originalHandleRestaurantSelect,
     setSelectedRestaurant,
     cancelAnalysis,
   } = useReviewAnalysis();
 
+  useEffect(() => {
+    if (!isLoaded || !router.isReady) return;
+
+    const { placeId, analyze } = router.query;
+
+    if (
+      placeId &&
+      typeof placeId === "string" &&
+      analyze === "true" &&
+      !isAnalyzing &&
+      !result &&
+      !detailedResult
+    ) {
+      console.log("Effect: Triggering detailed analysis for placeId:", placeId);
+      handleGetDetailedAnalysisFromPlaceId(placeId);
+
+      const currentPath = router.pathname;
+      const queryWithoutAnalyze = { ...router.query };
+      delete queryWithoutAnalyze.analyze;
+      router.replace({ pathname: currentPath, query: queryWithoutAnalyze }, undefined, {
+        shallow: true,
+      });
+    }
+  }, [
+    isLoaded,
+    router.isReady,
+    router.query,
+    isAnalyzing,
+    result,
+    detailedResult,
+    handleGetDetailedAnalysisFromPlaceId,
+    router,
+  ]);
+
+  const handleSelectRestaurantForBasicAnalysis = async (
+    placeId: string,
+    name: string,
+    url?: string,
+    address?: string /* Initial address might still come from search results */
+  ) => {
+    console.log("Selected restaurant for basic analysis (fetching details via API):", {
+      placeId,
+      name,
+    });
+
+    let finalAddress = address; // Use initial address as fallback
+    let finalPhotos: string[] = [];
+
+    // Fetch Place Details (address, photos) from our backend API
+    if (placeId) {
+      try {
+        console.log(`[Frontend] Calling /api/placedetails for ${placeId}...`);
+        const response = await fetch(`/api/placedetails?placeId=${placeId}`); // Use fetch or axios
+        const detailsData = await response.json();
+        console.log("[Frontend] /api/placedetails response:", detailsData);
+
+        if (detailsData.success && detailsData.data) {
+          finalAddress = detailsData.data.address || finalAddress; // Update address if fetched one is valid
+          finalPhotos = detailsData.data.photos || [];
+          console.log(`[Frontend] Updated address to: ${finalAddress}`);
+          console.log(`[Frontend] Received ${finalPhotos.length} photo URLs.`);
+        } else {
+          console.warn(
+            `[Frontend] Failed to fetch details from /api/placedetails: ${detailsData.message}`
+          );
+          // Keep initial address/photos if API call fails
+        }
+      } catch (error) {
+        console.error(`[Frontend] Error calling /api/placedetails for ${placeId}:`, error);
+        // Keep initial address/photos on network error
+      }
+    }
+
+    // Update selectedRestaurant state with potentially updated address and photos
+    setSelectedRestaurant({ placeId, name, address: finalAddress, photos: finalPhotos });
+
+    // Initiate the basic review analysis (handleSubmit)
+    if (url) {
+      handleSubmit(url, placeId);
+    } else if (placeId) {
+      console.warn("Direct URL not provided for handleSubmit...");
+      handleSubmit(undefined, placeId); // Pass undefined for URL
+    }
+  };
+
   const handleNewSearch = () => {
     setSelectedRestaurant(null);
-    setDirectUrlInput("");
+    router.replace("/", undefined, { shallow: true });
     topRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
@@ -78,6 +169,8 @@ function HomeContent() {
     return <div className='text-center py-12'>Loading map services...</div>;
   }
 
+  const displayResultData = detailedResult || result;
+
   return (
     <>
       <Head>
@@ -88,9 +181,10 @@ function HomeContent() {
         />
       </Head>
 
-      {/* Loading Indicator Animation */}
+      {/* Loading Indicator Animation - Modified Condition */}
       <AnimatePresence>
-        {isLoading && selectedRestaurant && (
+        {/* Show modal simply if isAnalyzing is true */}
+        {isAnalyzing && (
           <motion.div
             key='loading-modal'
             initial='initial'
@@ -104,9 +198,16 @@ function HomeContent() {
               <h3 className='text-xl font-semibold mb-2 text-gray-900 dark:text-white'>
                 Analyzing Reviews
               </h3>
+              {/* Conditionally show restaurant name if available */}
               <p className='text-gray-600 dark:text-gray-300 mb-4'>
-                Our AI is reading reviews for{" "}
-                <span className='font-medium'>{selectedRestaurant.name}</span>...
+                {selectedRestaurant ? (
+                  <>
+                    Our AI is reading reviews for{" "}
+                    <span className='font-medium'>{selectedRestaurant.name}</span>...
+                  </>
+                ) : (
+                  "Please wait while we fetch the details and analyze..."
+                )}
               </p>
               <div className='w-16 h-16 border-4 border-blue-200 dark:border-blue-900 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin mx-auto mb-4'></div>
               <motion.button
@@ -191,11 +292,11 @@ function HomeContent() {
                   />
                 ) : (
                   <DirectSearchSection
-                    isLoading={isLoading}
+                    isLoading={isAnalyzing}
                     directUrlInput={directUrlInput}
                     onDirectUrlInputChange={setDirectUrlInput}
                     onSubmit={handleSubmit}
-                    onRestaurantSelect={handleRestaurantSelect}
+                    onRestaurantSelect={handleSelectRestaurantForBasicAnalysis}
                   />
                 )}
               </motion.div>
@@ -216,7 +317,7 @@ function HomeContent() {
               className='mt-8'>
               <RestaurantResults
                 restaurants={restaurants}
-                onRestaurantSelect={handleRestaurantSelect}
+                onRestaurantSelect={handleSelectRestaurantForBasicAnalysis}
               />
             </motion.div>
           )}
@@ -224,7 +325,7 @@ function HomeContent() {
 
         {/* Analysis Results Animation */}
         <AnimatePresence>
-          {result && !isLoading && (
+          {displayResultData && !isAnalyzing && (
             <motion.div
               key='analysis-results'
               ref={reviewResultRef}
@@ -234,10 +335,11 @@ function HomeContent() {
               variants={fadeInUp}
               transition={{ duration: 0.5 }}>
               <AnalysisResults
-                result={result}
+                result={displayResultData}
                 selectedRestaurant={selectedRestaurant}
                 onNewSearch={handleNewSearch}
                 reviewResultRef={reviewResultRef}
+                reviews={reviews}
               />
             </motion.div>
           )}

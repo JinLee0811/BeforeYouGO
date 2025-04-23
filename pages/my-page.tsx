@@ -18,6 +18,8 @@ import { StarIcon as StarIconSolid } from "@heroicons/react/24/solid";
 import WishlistCard from "@/components/mypage/WishlistCard";
 import EditReviewForm from "@/components/review/EditReviewForm";
 import { motion, AnimatePresence } from "framer-motion";
+import { useUser } from "@/hooks/useUser";
+import { useRouter } from "next/router";
 
 interface Bookmark {
   id: string;
@@ -34,6 +36,7 @@ interface Bookmark {
   summary: string;
   photo_urls: string[];
   created_at: string;
+  is_pro_analysis: boolean;
 }
 
 interface Review {
@@ -86,9 +89,11 @@ export default function MyPage() {
   const [activeTab, setActiveTab] = useState<"bookmarks" | "reviews">("bookmarks");
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editingReview, setEditingReview] = useState<Review | null>(null);
+  const { user, isProUser, isLoading } = useUser();
+  const router = useRouter();
 
   const handleDeleteBookmark = async (id: string) => {
     try {
@@ -133,10 +138,6 @@ export default function MyPage() {
       setLoading(true);
       setError(null);
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
       if (!user) {
         console.error("User authentication information not found");
         return;
@@ -147,7 +148,7 @@ export default function MyPage() {
         .from("profiles")
         .select("id, email, nickname, settings, created_at, updated_at")
         .eq("id", user.id)
-        .maybeSingle();
+        .single();
 
       if (profileError) {
         console.error("Error fetching profile:", profileError);
@@ -218,7 +219,8 @@ export default function MyPage() {
           recommended_dishes,
           summary,
           photo_urls,
-          created_at
+          created_at,
+          is_pro_analysis
         `
         )
         .eq("user_id", user.id)
@@ -275,10 +277,17 @@ export default function MyPage() {
   };
 
   useEffect(() => {
-    fetchUserData();
-  }, []);
+    if (isLoading) return;
 
-  if (loading) {
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+
+    fetchUserData();
+  }, [user, isLoading, router]);
+
+  if (isLoading) {
     return (
       <div className='flex justify-center items-center min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900'>
         <div className='w-10 h-10 border-4 border-blue-500 dark:border-blue-400 border-t-transparent rounded-full animate-spin'></div>
@@ -365,7 +374,9 @@ export default function MyPage() {
                           recommendedDishes={bookmark.recommended_dishes}
                           summary={bookmark.summary}
                           photoUrls={bookmark.photo_urls}
+                          isProAnalysis={bookmark.is_pro_analysis}
                           onDelete={handleDeleteBookmark}
+                          onUpdate={fetchUserData}
                         />
                       </motion.div>
                     ))

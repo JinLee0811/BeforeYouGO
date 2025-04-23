@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { BookmarkIcon as BookmarkOutline } from "@heroicons/react/24/outline";
 import { BookmarkIcon as BookmarkSolid } from "@heroicons/react/24/solid";
+import { useUser } from "@/hooks/useUser";
 
 interface BookmarkButtonProps {
   placeId: string;
@@ -16,29 +17,21 @@ export default function BookmarkButton({
 }: BookmarkButtonProps) {
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
+  const { user } = useUser();
 
   useEffect(() => {
-    checkAuth();
-    if (userId) {
+    if (user) {
       checkBookmarkStatus();
     }
-  }, [userId, placeId]);
-
-  const checkAuth = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    setUserId(user?.id || null);
-  };
+  }, [user, placeId]);
 
   const checkBookmarkStatus = async () => {
-    if (!userId) return;
+    if (!user) return;
 
     const { data, error } = await supabase
       .from("bookmarks")
       .select("id")
-      .eq("user_id", userId)
+      .eq("user_id", user.id)
       .eq("place_id", placeId)
       .single();
 
@@ -51,7 +44,7 @@ export default function BookmarkButton({
   };
 
   const toggleBookmark = async () => {
-    if (!userId) {
+    if (!user) {
       onAuthRequired();
       return;
     }
@@ -62,14 +55,14 @@ export default function BookmarkButton({
         const { error } = await supabase
           .from("bookmarks")
           .delete()
-          .eq("user_id", userId)
+          .eq("user_id", user.id)
           .eq("place_id", placeId);
 
         if (error) throw error;
       } else {
         const { error } = await supabase.from("bookmarks").insert([
           {
-            user_id: userId,
+            user_id: user.id,
             place_id: placeId,
             restaurant_name: restaurantName,
           },

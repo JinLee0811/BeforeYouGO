@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabaseClient";
 import Image from "next/image";
 import { UserCircleIcon } from "@heroicons/react/24/outline";
 import { PhotoIcon } from "@heroicons/react/24/solid";
+import { useUser } from "@/hooks/useUser";
 
 interface ProfileImageUploadProps {
   currentImageUrl?: string;
@@ -15,6 +16,7 @@ export default function ProfileImageUpload({
 }: ProfileImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useUser();
 
   const uploadImage = useCallback(
     async (file: File) => {
@@ -34,7 +36,6 @@ export default function ProfileImageUpload({
           throw new Error("Only image files are allowed");
         }
 
-        const user = (await supabase.auth.getUser()).data.user;
         if (!user) throw new Error("Please sign in to upload an image");
 
         // Remove old image if exists
@@ -76,7 +77,7 @@ export default function ProfileImageUpload({
         setUploading(false);
       }
     },
-    [currentImageUrl, onImageUpdate]
+    [currentImageUrl, onImageUpdate, user]
   );
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {

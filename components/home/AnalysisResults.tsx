@@ -1,10 +1,11 @@
-import React from "react";
-import { ArrowLeftIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
+import React, { useState, useEffect } from "react";
+import { ArrowLeftIcon, MagnifyingGlassIcon, SparklesIcon } from "@heroicons/react/24/outline";
 import ReviewResultCard from "../ReviewResultCard";
-import { AnalysisResult } from "@/types";
+import { AnalysisResult, BasicSummaryResult, DetailedAnalysisResult, Review } from "@/types";
+import { supabase } from "../../lib/supabaseClient";
 
 interface AnalysisResultsProps {
-  result: AnalysisResult | null;
+  result: AnalysisResult | BasicSummaryResult | null;
   selectedRestaurant: {
     placeId: string;
     name: string;
@@ -14,6 +15,7 @@ interface AnalysisResultsProps {
   } | null;
   onNewSearch: () => void;
   reviewResultRef: React.RefObject<HTMLDivElement>;
+  reviews: Review[];
 }
 
 export default function AnalysisResults({
@@ -21,14 +23,85 @@ export default function AnalysisResults({
   selectedRestaurant,
   onNewSearch,
   reviewResultRef,
+  reviews,
 }: AnalysisResultsProps) {
-  console.log("AnalysisResults rendered with:", { result, selectedRestaurant }); // 디버깅용
+  const [isDetailedLoading, setIsDetailedLoading] = useState(false);
+  const [detailedError, setDetailedError] = useState<string | null>(null);
+  const [detailedResult, setDetailedResult] = useState<DetailedAnalysisResult | null>(null);
 
-  if (!result) return null;
+  const handleGetDetailedAnalysis = async () => {
+    if (!selectedRestaurant || !Array.isArray(reviews) || reviews.length === 0) {
+      console.warn("Detailed analysis prerequisites not met", { selectedRestaurant, reviews });
+      return;
+    }
+
+    setIsDetailedLoading(true);
+    setDetailedError(null);
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) {
+        setDetailedError("Login required. Please log in to view detailed analysis.");
+        setIsDetailedLoading(false);
+        return;
+      }
+
+      console.log("Fetching detailed analysis...");
+      const response = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reviews,
+          placeId: selectedRestaurant.placeId,
+          userId: session.user.id,
+        }),
+      });
+
+      const data = await response.json();
+      console.log("Detailed analysis raw response:", data);
+
+      if (!response.ok) {
+        throw new Error(data.error || `HTTP error! status: ${response.status}`);
+      }
+
+      if (data && data.data) {
+        setDetailedResult(data.data);
+      } else if (data && !data.data && response.ok) {
+        console.warn(
+          "API response structure might have changed. Expected 'data.data' but received:",
+          data
+        );
+        setDetailedResult(data);
+      } else {
+        throw new Error("Invalid data structure received from analysis API.");
+      }
+    } catch (err: any) {
+      console.error("Detailed analysis error:", err);
+      setDetailedError(err.message || "An error occurred while fetching detailed analysis.");
+    } finally {
+      setIsDetailedLoading(false);
+    }
+  };
+
+  const displayResult = detailedResult || result;
+
+  if (!displayResult) return null;
+
+  const isBasicSummary = !detailedResult && !!result;
 
   return (
     <div ref={reviewResultRef} className='mt-8 space-y-6 w-full max-w-4xl mx-auto'>
-      <ReviewResultCard result={result} selectedRestaurant={selectedRestaurant} />
+      <ReviewResultCard
+        result={displayResult}
+        selectedRestaurant={selectedRestaurant}
+        isBasicSummary={isBasicSummary}
+        onGetDetailedAnalysis={handleGetDetailedAnalysis}
+        isDetailedAnalysisLoading={isDetailedLoading}
+        detailedAnalysisError={detailedError}
+      />
+
       <div className='flex justify-center pt-4'>
         <button
           onClick={onNewSearch}

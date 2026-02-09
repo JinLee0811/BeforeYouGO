@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from "react";
-import { ArrowLeftIcon, MagnifyingGlassIcon, SparklesIcon } from "@heroicons/react/24/outline";
+import React, { useState } from "react";
+import { useRouter } from "next/router";
+import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import ReviewResultCard from "../ReviewResultCard";
 import { AnalysisResult, BasicSummaryResult, DetailedAnalysisResult, Review } from "@/types";
 import { supabase } from "../../lib/supabaseClient";
+ 
 
 interface AnalysisResultsProps {
   result: AnalysisResult | BasicSummaryResult | null;
@@ -28,10 +30,11 @@ export default function AnalysisResults({
   const [isDetailedLoading, setIsDetailedLoading] = useState(false);
   const [detailedError, setDetailedError] = useState<string | null>(null);
   const [detailedResult, setDetailedResult] = useState<DetailedAnalysisResult | null>(null);
+  const router = useRouter();
 
   const handleGetDetailedAnalysis = async () => {
-    if (!selectedRestaurant || !Array.isArray(reviews) || reviews.length === 0) {
-      console.warn("Detailed analysis prerequisites not met", { selectedRestaurant, reviews });
+    if (!selectedRestaurant) {
+      console.warn("Selected restaurant is missing.");
       return;
     }
 
@@ -42,20 +45,20 @@ export default function AnalysisResults({
       const {
         data: { session },
       } = await supabase.auth.getSession();
-      if (!session) {
-        setDetailedError("Login required. Please log in to view detailed analysis.");
-        setIsDetailedLoading(false);
-        return;
+      const accessToken = session?.access_token;
+      if (!accessToken) {
+        throw new Error("Login required to view detailed analysis.");
       }
 
       console.log("Fetching detailed analysis...");
       const response = await fetch("/api/analyze", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: JSON.stringify({
-          reviews,
           placeId: selectedRestaurant.placeId,
-          userId: session.user.id,
         }),
       });
 
@@ -63,19 +66,25 @@ export default function AnalysisResults({
       console.log("Detailed analysis raw response:", data);
 
       if (!response.ok) {
+        if (response.status === 429) {
+          router.push("/pricing");
+          return;
+        }
         throw new Error(data.error || `HTTP error! status: ${response.status}`);
       }
 
       if (data && data.data) {
         setDetailedResult(data.data);
-      } else if (data && !data.data && response.ok) {
+      } else {
         console.warn(
-          "API response structure might have changed. Expected 'data.data' but received:",
+          "API response structure might have changed or returned unexpected format. Received:",
           data
         );
-        setDetailedResult(data);
-      } else {
-        throw new Error("Invalid data structure received from analysis API.");
+        if (data && data.sentiment && data.summary) {
+          setDetailedResult(data);
+        } else {
+          throw new Error("Invalid data structure received from analysis API.");
+        }
       }
     } catch (err: any) {
       console.error("Detailed analysis error:", err);

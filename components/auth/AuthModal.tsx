@@ -2,6 +2,7 @@ import { Dialog } from "@headlessui/react";
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { supabase } from "../../lib/supabaseClient";
+import { getSupabaseEmailRedirectUrl, getSupabaseRedirectUrl } from "../../lib/externalUrls";
 import { CheckCircleIcon, XMarkIcon } from "@heroicons/react/24/outline";
 
 interface AuthModalProps {
@@ -19,12 +20,14 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
   const [mode, setMode] = useState<"signIn" | "signUp">("signIn");
   const [showConfirmationMessage, setShowConfirmationMessage] = useState(false);
   const [submittedEmail, setSubmittedEmail] = useState("");
+  const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
     setShowConfirmationMessage(false);
+    setShowWelcomeBanner(false);
 
     try {
       if (mode === "signIn") {
@@ -45,10 +48,12 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
             data: {
               nickname: nickname.trim(),
             },
+            emailRedirectTo: getSupabaseEmailRedirectUrl(),
           },
         });
         if (error) throw error;
         setSubmittedEmail(email);
+        setShowWelcomeBanner(true);
         setShowConfirmationMessage(true);
         setEmail("");
         setPassword("");
@@ -85,7 +90,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: window.location.origin,
+          redirectTo: getSupabaseRedirectUrl(),
         },
       });
       if (error) throw error;
@@ -134,19 +139,26 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
 
           {showConfirmationMessage ? (
             <div className='text-center'>
+              {showWelcomeBanner && (
+                <div className='mb-6 bg-gradient-to-r from-blue-500 to-purple-500 text-white p-4 rounded-lg shadow-lg'>
+                  <h4 className='text-lg font-bold mb-2'>🎉 환영합니다!</h4>
+                  <p className='text-sm'>
+                    회원가입을 축하드립니다! AI 상세 분석 1회 무료 이용권이 자동으로 지급되었습니다.
+                  </p>
+                </div>
+              )}
               <CheckCircleIcon className='w-16 h-16 text-green-500 mx-auto mb-4' />
               <Dialog.Title className='text-xl font-bold text-gray-800 mb-3'>
-                Check Your Email
+                이메일을 확인해주세요
               </Dialog.Title>
               <p className='text-sm text-gray-600 mb-6'>
-                We've sent a confirmation link to{" "}
-                <strong className='text-gray-800'>{submittedEmail}</strong>. Please click the link
-                to complete your registration. Check your spam folder if you don't see it.
+                <strong className='text-gray-800'>{submittedEmail}</strong>로 인증 링크를
+                보냈습니다. 링크를 클릭하여 회원가입을 완료해주세요. 스팸 메일함도 확인해주세요.
               </p>
               <button
                 onClick={onClose}
                 className='w-full bg-blue-600 text-white rounded-lg py-2.5 px-4 text-sm font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out'>
-                Close
+                닫기
               </button>
             </div>
           ) : (

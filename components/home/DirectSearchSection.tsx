@@ -8,6 +8,8 @@ interface DirectSearchSectionProps {
   onDirectUrlInputChange: (value: string) => void;
   onSubmit: (url: string) => void;
   onRestaurantSelect: (placeId: string, name: string, url: string) => void;
+  isAuthenticated: boolean;
+  onAuthRequired: () => void;
 }
 
 const DirectSearchSection: React.FC<DirectSearchSectionProps> = ({
@@ -16,7 +18,11 @@ const DirectSearchSection: React.FC<DirectSearchSectionProps> = ({
   onDirectUrlInputChange,
   onSubmit,
   onRestaurantSelect,
+  isAuthenticated,
+  onAuthRequired,
 }) => {
+  const searchDisabled = isLoading || !isAuthenticated;
+
   return (
     <div className='bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 dark:from-indigo-900/20 dark:via-purple-900/20 dark:to-pink-900/20 rounded-xl shadow-lg p-6 md:p-8 mb-12 text-center'>
       <SparklesIcon className='w-10 h-10 text-indigo-600 dark:text-indigo-400 mx-auto mb-4' />
@@ -28,9 +34,17 @@ const DirectSearchSection: React.FC<DirectSearchSectionProps> = ({
       </p>
       <div className='max-w-lg mx-auto'>
         <div className='mb-4'>
-          <RestaurantSearch onRestaurantSelect={onRestaurantSelect} />
+          {isAuthenticated ? (
+            <RestaurantSearch onRestaurantSelect={onRestaurantSelect} />
+          ) : (
+            <button
+              onClick={onAuthRequired}
+              className='w-full px-4 py-3 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 transition-colors'>
+              Login to search restaurants
+            </button>
+          )}
         </div>
-        <details className='text-sm'>
+        <details className='text-sm' open={isAuthenticated}>
           <summary className='cursor-pointer text-indigo-600 dark:text-indigo-400 hover:underline'>
             Or paste Google Maps URL
           </summary>
@@ -41,11 +55,11 @@ const DirectSearchSection: React.FC<DirectSearchSectionProps> = ({
               placeholder='https://maps.app.goo.gl/...'
               value={directUrlInput}
               onChange={(e) => onDirectUrlInputChange(e.target.value)}
-              disabled={isLoading}
+              disabled={searchDisabled}
             />
             <button
               onClick={() => onSubmit(directUrlInput)}
-              disabled={isLoading || !directUrlInput.trim()}
+              disabled={searchDisabled || !directUrlInput.trim()}
               className='px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 text-sm whitespace-nowrap'>
               Analyze URL
             </button>

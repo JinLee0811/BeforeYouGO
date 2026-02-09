@@ -15,6 +15,7 @@ export const useRestaurantSearch = (isLoaded: boolean) => {
     useState<google.maps.places.Autocomplete | null>(null);
 
   const findNearby = () => {
+    if (isSearching) return;
     setError(null);
     setIsSearching(true);
     setRestaurants([]);
@@ -58,6 +59,7 @@ export const useRestaurantSearch = (isLoaded: boolean) => {
   };
 
   const searchByLocationText = async (locationText: string) => {
+    if (isSearching) return;
     if (!locationText.trim()) {
       setError("Please enter a location to search.");
       return;
@@ -139,14 +141,37 @@ export const useRestaurantSearch = (isLoaded: boolean) => {
           const filteredPlaces = results.filter(
             (place) => place.rating && place.rating >= 4.0 && place.place_id
           );
+          const basePlaces =
+            filteredPlaces.length > 0
+              ? filteredPlaces
+              : results.filter((place) => place.place_id);
+          if (filteredPlaces.length === 0 && basePlaces.length > 0) {
+            console.warn(
+              "No 4.0+ rated places found. Falling back to all results with place_id."
+            );
+          }
 
-          const restaurantPromises = filteredPlaces.map(async (place) => {
+          const restaurantPromises = basePlaces.map(async (place) => {
             let distance = 0;
             try {
-              if (place.geometry?.location && google.maps.geometry?.spherical) {
+              const hasCoords =
+                Number.isFinite(coords.lat) && Number.isFinite(coords.lng);
+              const placeLatLng = place.geometry?.location;
+              if (
+                hasCoords &&
+                placeLatLng &&
+                typeof placeLatLng.lat === "function" &&
+                typeof placeLatLng.lng === "function" &&
+                google.maps.geometry?.spherical?.computeDistanceBetween
+              ) {
+                const origin = new google.maps.LatLng(coords.lat, coords.lng);
+                const destination = new google.maps.LatLng(
+                  placeLatLng.lat(),
+                  placeLatLng.lng()
+                );
                 distance = google.maps.geometry.spherical.computeDistanceBetween(
-                  new google.maps.LatLng(coords.lat, coords.lng),
-                  place.geometry.location
+                  origin,
+                  destination
                 );
               }
             } catch (error) {
@@ -187,7 +212,7 @@ export const useRestaurantSearch = (isLoaded: boolean) => {
 
             setRestaurants(filteredResults);
             if (filteredResults.length === 0) {
-              setError("No restaurants found nearby with 4.0+ rating. Try a different location?");
+              setError("No restaurants found nearby. Try a different location?");
             } else {
               setError(null);
             }

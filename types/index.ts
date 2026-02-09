@@ -23,7 +23,7 @@ export interface DetailedAnalysisResult extends AnalysisResult {
   negative_keywords: string[];
   mentioned_menu_items: string[];
   recommended_dishes: string[];
-  is_pro_analysis: true; // Always true for detailed
+  is_pro_analysis: boolean;
 }
 
 export interface ApiResponse {

@@ -21,6 +21,7 @@ import { BookmarkIcon as BookmarkIconSolid } from "@heroicons/react/24/solid";
 import { supabase } from "@/lib/supabaseClient";
 import ReviewForm from "./review/ReviewForm";
 import { useUser } from "@/hooks/useUser";
+import { useRouter } from "next/router";
 
 interface ReviewResultCardProps {
   result: AnalysisResult | BasicSummaryResult;
@@ -155,6 +156,7 @@ export default function ReviewResultCard({
   const [isLoading, setIsLoading] = useState(false);
   const [updateSuccess, setUpdateSuccess] = useState(false);
   const { user } = useUser();
+  const router = useRouter();
 
   // Check initial bookmark status when component mounts or restaurant changes
   useEffect(() => {
@@ -199,7 +201,7 @@ export default function ReviewResultCard({
         return;
       }
 
-      const isDetailed = "positive_keywords" in result;
+      const isDetailed = !isBasicSummary && "positive_keywords" in result;
       const bookmarkData: any = {
         user_id: user.id,
         place_id: selectedRestaurant.placeId,
@@ -244,6 +246,13 @@ export default function ReviewResultCard({
   };
 
   const handleReviewClick = () => {
+    if (typeof window !== "undefined") {
+      const demoUsed = localStorage.getItem("demo_free_analysis_used") === "true";
+      if (demoUsed) {
+        router.push("/pricing");
+        return;
+      }
+    }
     setIsReviewModalOpen(true);
   };
 

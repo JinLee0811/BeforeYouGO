@@ -1,175 +1,103 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Head from "next/head";
-import { ChartBarIcon } from "@heroicons/react/24/outline";
 import { useLoadScript, Libraries } from "@react-google-maps/api";
-import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/router";
 import HomeHeader from "../components/home/HomeHeader";
 import SearchSection from "../components/home/SearchSection";
-import RestaurantResults from "../components/home/RestaurantResults";
-import DirectSearchSection from "../components/home/DirectSearchSection";
-import AnalysisResults from "../components/home/AnalysisResults";
-import { useRestaurantSearch } from "../hooks/useRestaurantSearch";
-import { useReviewAnalysis } from "../hooks/useReviewAnalysis";
-import axios from "axios";
+import HowItWorksSection from "../components/home/HowItWorksSection";
+import AuthModal from "../components/auth/AuthModal";
+import { useUser } from "@/hooks/useUser";
+import { supabase } from "@/lib/supabaseClient";
 
 const libraries: Libraries = ["places"];
-
-// Animation variants
-const fadeInUp = {
-  initial: { opacity: 0, y: 20 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -20 },
-};
-
-const fadeIn = {
-  initial: { opacity: 0 },
-  animate: { opacity: 1 },
-  exit: { opacity: 0 },
-};
-
 function HomeContent() {
+  const router = useRouter();
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const { user, isLoading: isUserLoading } = useUser();
+  const howItWorksRef = useRef<HTMLDivElement>(null);
+  const [searchInput, setSearchInput] = useState("");
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
+  const loginPromptCooldownUntilRef = useRef(0);
+  const sessionCheckInFlightRef = useRef(false);
+  const [autocompleteInstance, setAutocompleteInstance] =
+    useState<google.maps.places.Autocomplete | null>(null);
+  const locationInputRef = useRef<HTMLInputElement>(null);
+  const [pendingAction, setPendingAction] = useState<
+    | { type: "nearby" }
+    | { type: "location"; location: string }
+    | { type: "placeChanged" }
+    | null
+  >(null);
+
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
     libraries,
     language: "en",
   });
 
-  const router = useRouter();
-  const topRef = useRef<HTMLDivElement>(null);
-  const [directUrlInput, setDirectUrlInput] = useState("");
-  const [activeTab, setActiveTab] = useState<"search" | "direct">("search");
-
-  const {
-    isSearching,
-    error: searchError,
-    restaurants,
-    searchLocationInput,
-    hasSearched,
-    locationInputRef,
-    setSearchLocationInput,
-    findNearby,
-    searchByLocationText,
-    onAutocompleteLoad,
-    onPlaceChanged,
-  } = useRestaurantSearch(isLoaded);
-
-  const {
-    isAnalyzing,
-    result,
-    detailedResult,
-    error: analysisError,
-    reviews,
-    selectedRestaurant,
-    reviewResultRef,
-    handleSubmit,
-    handleGetDetailedAnalysisFromPlaceId,
-    handleRestaurantSelect: originalHandleRestaurantSelect,
-    setSelectedRestaurant,
-    cancelAnalysis,
-  } = useReviewAnalysis();
+  const handleScrollToHowItWorks = () => {
+    howItWorksRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   useEffect(() => {
-    if (!isLoaded || !router.isReady) return;
+    const handleScroll = () => {
+      setShowHowItWorks(window.scrollY > 180);
+    };
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
-    const { placeId, analyze } = router.query;
-
-    if (
-      placeId &&
-      typeof placeId === "string" &&
-      analyze === "true" &&
-      !isAnalyzing &&
-      !result &&
-      !detailedResult
-    ) {
-      console.log("Effect: Triggering detailed analysis for placeId:", placeId);
-      handleGetDetailedAnalysisFromPlaceId(placeId);
-
-      const currentPath = router.pathname;
-      const queryWithoutAnalyze = { ...router.query };
-      delete queryWithoutAnalyze.analyze;
-      router.replace({ pathname: currentPath, query: queryWithoutAnalyze }, undefined, {
-        shallow: true,
-      });
+  const handleAuthSuccess = () => {
+    setShowAuthModal(false);
+    if (!pendingAction) return;
+    if (pendingAction.type === "nearby") {
+      router.push("/search?mode=nearby");
+    } else if (pendingAction.type === "location") {
+      router.push(`/search?q=${encodeURIComponent(pendingAction.location)}`);
+    } else if (pendingAction.type === "placeChanged") {
+      const fallback = searchInput.trim();
+      const target = fallback ? `/search?q=${encodeURIComponent(fallback)}` : "/search";
+      router.push(target);
     }
-  }, [
-    isLoaded,
-    router.isReady,
-    router.query,
-    isAnalyzing,
-    result,
-    detailedResult,
-    handleGetDetailedAnalysisFromPlaceId,
-    router,
-  ]);
+    setPendingAction(null);
+  };
 
-  const handleSelectRestaurantForBasicAnalysis = async (
-    placeId: string,
-    name: string,
-    url?: string,
-    address?: string /* Initial address might still come from search results */
-  ) => {
-    console.log("Selected restaurant for basic analysis (fetching details via API):", {
-      placeId,
-      name,
-    });
+  const hasUser = !!user;
+  const isAuthenticated = hasUser && !isUserLoading;
 
-    let finalAddress = address; // Use initial address as fallback
-    let finalPhotos: string[] = [];
-
-    // Fetch Place Details (address, photos) from our backend API
-    if (placeId) {
-      try {
-        console.log(`[Frontend] Calling /api/placedetails for ${placeId}...`);
-        const response = await fetch(`/api/placedetails?placeId=${placeId}`); // Use fetch or axios
-        const detailsData = await response.json();
-        console.log("[Frontend] /api/placedetails response:", detailsData);
-
-        if (detailsData.success && detailsData.data) {
-          finalAddress = detailsData.data.address || finalAddress; // Update address if fetched one is valid
-          finalPhotos = detailsData.data.photos || [];
-          console.log(`[Frontend] Updated address to: ${finalAddress}`);
-          console.log(`[Frontend] Received ${finalPhotos.length} photo URLs.`);
-        } else {
-          console.warn(
-            `[Frontend] Failed to fetch details from /api/placedetails: ${detailsData.message}`
-          );
-          // Keep initial address/photos if API call fails
+  const ensureSessionOrPrompt = async (action?: { type: "nearby" | "location" | "placeChanged"; location?: string }) => {
+    if (sessionCheckInFlightRef.current) return;
+    sessionCheckInFlightRef.current = true;
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (session?.user) {
+        if (showAuthModal) {
+          setShowAuthModal(false);
         }
-      } catch (error) {
-        console.error(`[Frontend] Error calling /api/placedetails for ${placeId}:`, error);
-        // Keep initial address/photos on network error
+        setPendingAction(null);
+        if (action?.type === "nearby") {
+          router.push("/search?mode=nearby");
+        } else if (action?.type === "location" && action.location) {
+          router.push(`/search?q=${encodeURIComponent(action.location)}`);
+        } else if (action?.type === "placeChanged") {
+          const fallback = searchInput.trim();
+          const target = fallback ? `/search?q=${encodeURIComponent(fallback)}` : "/search";
+          router.push(target);
+        }
+        return;
       }
-    }
-
-    // Update selectedRestaurant state with potentially updated address and photos
-    setSelectedRestaurant({ placeId, name, address: finalAddress, photos: finalPhotos });
-
-    // Initiate the basic review analysis (handleSubmit)
-    if (url) {
-      handleSubmit(url, placeId);
-    } else if (placeId) {
-      console.warn("Direct URL not provided for handleSubmit...");
-      handleSubmit(undefined, placeId); // Pass undefined for URL
+      if (Date.now() < loginPromptCooldownUntilRef.current) return;
+      if (action) {
+        setPendingAction(action);
+      }
+      setShowAuthModal(true);
+    } finally {
+      sessionCheckInFlightRef.current = false;
     }
   };
-
-  const handleNewSearch = () => {
-    setSelectedRestaurant(null);
-    router.replace("/", undefined, { shallow: true });
-    topRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  if (loadError) {
-    return (
-      <div className='text-center py-12 text-red-600'>Error loading maps: {loadError.message}</div>
-    );
-  }
-  if (!isLoaded) {
-    return <div className='text-center py-12'>Loading map services...</div>;
-  }
-
-  const displayResultData = detailedResult || result;
 
   return (
     <>
@@ -177,173 +105,115 @@ function HomeContent() {
         <title>Before You Go | AI Restaurant Insights for Travelers</title>
         <meta
           name='description'
-          content='Find the best local restaurants anywhere. AI analyzes reviews, so you dine like a local, not a tourist. Perfect for your next trip!'
+          content='Discover restaurants faster with AI-generated review summaries.'
         />
       </Head>
 
-      {/* Loading Indicator Animation - Modified Condition */}
-      <AnimatePresence>
-        {/* Show modal simply if isAnalyzing is true */}
-        {isAnalyzing && (
-          <motion.div
-            key='loading-modal'
-            initial='initial'
-            animate='animate'
-            exit='exit'
-            variants={fadeIn}
-            transition={{ duration: 0.3 }}
-            className='fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50'>
-            <div className='bg-white dark:bg-gray-800 rounded-xl p-8 max-w-md w-full mx-4 shadow-2xl text-center'>
-              <ChartBarIcon className='w-12 h-12 text-blue-600 dark:text-blue-400 mx-auto mb-4 animate-pulse' />
-              <h3 className='text-xl font-semibold mb-2 text-gray-900 dark:text-white'>
-                Analyzing Reviews
-              </h3>
-              {/* Conditionally show restaurant name if available */}
-              <p className='text-gray-600 dark:text-gray-300 mb-4'>
-                {selectedRestaurant ? (
-                  <>
-                    Our AI is reading reviews for{" "}
-                    <span className='font-medium'>{selectedRestaurant.name}</span>...
-                  </>
-                ) : (
-                  "Please wait while we fetch the details and analyze..."
-                )}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => {
+          loginPromptCooldownUntilRef.current = Date.now() + 500;
+          setShowAuthModal(false);
+        }}
+        onAuthSuccess={handleAuthSuccess}
+      />
+
+      <HomeHeader />
+
+      <div className='max-w-5xl mx-auto px-4 py-10'>
+        <div
+          className={`rounded-[28px] border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl px-8 py-10 text-center transition-all duration-500 ${
+            showHowItWorks ? "opacity-0 -translate-y-6 pointer-events-none" : "opacity-100"
+          }`}>
+          <div className='inline-flex items-center gap-2 rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-200 px-3 py-1 text-xs font-semibold'>
+            {user ? "Welcome back" : "New here?"}
+          </div>
+          <h1 className='mt-4 text-3xl sm:text-4xl font-semibold text-gray-900 dark:text-white'>
+            Search smarter. Choose faster.
+          </h1>
+          <p className='mt-3 text-base sm:text-lg text-gray-600 dark:text-gray-300'>
+            AI summaries help you decide in seconds.
+          </p>
+          <div className='mt-7'>
+            <div className='max-w-2xl mx-auto w-full'>
+              {loadError && (
+                <p className='text-sm text-red-500 mb-3'>Error loading maps. Please refresh.</p>
+              )}
+              {isLoaded ? (
+                <SearchSection
+                  isSearching={false}
+                  error={null}
+                  searchLocationInput={searchInput}
+                  onSearchLocationInputChange={setSearchInput}
+                  onFindNearby={() => {
+                    if (isUserLoading) return;
+                    if (hasUser) {
+                      router.push("/search?mode=nearby");
+                    } else {
+                      ensureSessionOrPrompt({ type: "nearby" });
+                    }
+                  }}
+                  onSearchByLocationText={(location) => {
+                    const query = location.trim();
+                    if (!query) return;
+                    if (isUserLoading) return;
+                    if (hasUser) {
+                      router.push(`/search?q=${encodeURIComponent(query)}`);
+                    } else {
+                      ensureSessionOrPrompt({ type: "location", location: query });
+                    }
+                  }}
+                  onAutocompleteLoad={(autocomplete) => setAutocompleteInstance(autocomplete)}
+                  onPlaceChanged={() => {
+                    const place = autocompleteInstance?.getPlace();
+                    const locationName = place?.name || place?.formatted_address || searchInput;
+                    const query = locationName?.trim();
+                    if (!query) return;
+                    if (isUserLoading) return;
+                    if (hasUser) {
+                      router.push(`/search?q=${encodeURIComponent(query)}`);
+                    } else {
+                      ensureSessionOrPrompt({ type: "placeChanged" });
+                    }
+                  }}
+                  locationInputRef={locationInputRef}
+                  onLoginRequired={
+                    !hasUser && !isUserLoading
+                      ? () => {
+                          ensureSessionOrPrompt();
+                        }
+                      : undefined
+                  }
+                  isLoginModalOpen={showAuthModal}
+                  disableSearchInput={!hasUser && !isUserLoading}
+                />
+              ) : (
+                <div className='w-full rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 text-sm text-gray-400'>
+                  Loading search…
+                </div>
+              )}
+            </div>
+          </div>
+          {!showHowItWorks && (
+            <div className='mt-6 flex justify-center'>
+              <p className='text-sm font-semibold bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent animate-pulse'>
+                New here? Scroll down to see how it works.
               </p>
-              <div className='w-16 h-16 border-4 border-blue-200 dark:border-blue-900 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin mx-auto mb-4'></div>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={cancelAnalysis}
-                className='px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors duration-200'>
-                Cancel Analysis
-              </motion.button>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div ref={topRef}>
-        <HomeHeader />
-
-        <div className='max-w-4xl mx-auto px-4 py-8'>
-          {/* Tab Component */}
-          <div className='flex justify-center mb-8'>
-            <div className='relative bg-gray-200 dark:bg-gray-800 p-1 rounded-lg flex space-x-1 shadow-sm'>
-              <motion.button
-                whileHover={{ scale: 1.03, y: -1 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setActiveTab("search")}
-                className={`relative px-6 py-2.5 rounded-md text-sm font-medium transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800 ${
-                  activeTab === "search"
-                    ? "text-blue-600 dark:text-blue-300"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
-                }`}>
-                {activeTab === "search" && (
-                  <motion.span
-                    layoutId='activeTabIndicator'
-                    className='absolute inset-0 z-0 rounded-md bg-white dark:bg-gray-600 shadow'
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                  />
-                )}
-                <span className='relative z-10'>Search by Location</span>
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.03, y: -1 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setActiveTab("direct")}
-                className={`relative px-6 py-2.5 rounded-md text-sm font-medium transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800 ${
-                  activeTab === "direct"
-                    ? "text-blue-600 dark:text-blue-300"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
-                }`}>
-                {activeTab === "direct" && (
-                  <motion.span
-                    layoutId='activeTabIndicator'
-                    className='absolute inset-0 z-0 rounded-md bg-white dark:bg-gray-600 shadow'
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                  />
-                )}
-                <span className='relative z-10'>Direct Search</span>
-              </motion.button>
-            </div>
-          </div>
-
-          {/* Tab Content Animation */}
-          <div className='mt-8'>
-            <AnimatePresence mode='wait'>
-              <motion.div
-                key={activeTab}
-                initial='initial'
-                animate='animate'
-                exit='exit'
-                variants={fadeIn}
-                transition={{ duration: 0.3 }}>
-                {activeTab === "search" ? (
-                  <SearchSection
-                    isSearching={isSearching}
-                    error={searchError}
-                    searchLocationInput={searchLocationInput}
-                    onSearchLocationInputChange={setSearchLocationInput}
-                    onFindNearby={findNearby}
-                    onSearchByLocationText={searchByLocationText}
-                    onAutocompleteLoad={onAutocompleteLoad}
-                    onPlaceChanged={onPlaceChanged}
-                    locationInputRef={locationInputRef}
-                  />
-                ) : (
-                  <DirectSearchSection
-                    isLoading={isAnalyzing}
-                    directUrlInput={directUrlInput}
-                    onDirectUrlInputChange={setDirectUrlInput}
-                    onSubmit={handleSubmit}
-                    onRestaurantSelect={handleSelectRestaurantForBasicAnalysis}
-                  />
-                )}
-              </motion.div>
-            </AnimatePresence>
-          </div>
+          )}
         </div>
 
-        {/* Restaurant Results Animation */}
-        <AnimatePresence>
-          {hasSearched && !isSearching && restaurants.length > 0 && (
-            <motion.div
-              key='restaurant-results'
-              initial='initial'
-              animate='animate'
-              exit='exit'
-              variants={fadeInUp}
-              transition={{ duration: 0.5 }}
-              className='mt-8'>
-              <RestaurantResults
-                restaurants={restaurants}
-                onRestaurantSelect={handleSelectRestaurantForBasicAnalysis}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Analysis Results Animation */}
-        <AnimatePresence>
-          {displayResultData && !isAnalyzing && (
-            <motion.div
-              key='analysis-results'
-              ref={reviewResultRef}
-              initial='initial'
-              animate='animate'
-              exit='exit'
-              variants={fadeInUp}
-              transition={{ duration: 0.5 }}>
-              <AnalysisResults
-                result={displayResultData}
-                selectedRestaurant={selectedRestaurant}
-                onNewSearch={handleNewSearch}
-                reviewResultRef={reviewResultRef}
-                reviews={reviews}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <div
+          ref={howItWorksRef}
+          className={`transition-opacity duration-500 ${
+            showHowItWorks ? "opacity-100" : "opacity-0 pointer-events-none"
+          }`}>
+          <HowItWorksSection
+            onLoginClick={() => setShowAuthModal(true)}
+            onSearchClick={() => router.push("/search")}
+            isAuthenticated={isAuthenticated}
+          />
+        </div>
       </div>
     </>
   );

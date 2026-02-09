@@ -8,42 +8,86 @@ export async function crawlReviews(url: string): Promise<Review[]> {
     console.log("Launching browser...");
     browser = await puppeteer.launch({
       headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      args: ["--no-sandbox", "--disable-setuid-sandbox", "--window-size=1920,1080"],
     });
     console.log("Browser launched.");
 
     const page = await browser.newPage();
+    await page.setViewport({ width: 1920, height: 1080 });
     console.log("Navigating to page...");
-    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 120000 });
+    await page.goto(url, { waitUntil: "networkidle0", timeout: 120000 });
     console.log("Page loaded.");
 
-    console.log("Waiting for review section selector...");
-    const reviewSelector = "div.jJc9Ad";
-    await page.waitForSelector(reviewSelector, { timeout: 60000 });
-    console.log("Review section found.");
+    // 페이지가 완전히 로드될 때까지 추가 대기
+    await new Promise((resolve) => setTimeout(resolve, 5000));
 
-    // 여러 번 스크롤하여 더 많은 리뷰 로드
-    for (let i = 0; i < 3; i++) {
-      await page.evaluate(() => {
-        window.scrollBy(0, document.body.scrollHeight);
-      });
-      await new Promise((resolve) => setTimeout(resolve, 5000));
+    // 리뷰 요소들 찾기 (여러 셀렉터 시도)
+    console.log("Looking for review elements...");
+    const selectors = [
+      "div.jJc9Ad", // 기존 셀렉터
+      "div[data-review-id]", // 리뷰 ID 속성
+      "div[jscontroller] div.MyEned", // 리뷰 컨테이너
+      "div.m6QErb[aria-label]", // 리뷰 섹션
+    ];
+
+    let reviewElements = null;
+    for (const selector of selectors) {
+      try {
+        const elements = await page.$$(selector);
+        if (elements.length > 0) {
+          console.log(`Found reviews using selector: ${selector}`);
+          reviewElements = elements;
+          break;
+        }
+      } catch (error) {
+        console.log(`Selector ${selector} failed, trying next...`);
+        continue;
+      }
     }
 
-    console.log("Evaluating page to extract reviews...");
-    const reviews = await page.evaluate((selector) => {
-      const reviewElements = document.querySelectorAll(selector);
-      console.log(`Found ${reviewElements.length} review elements.`);
-      return Array.from(reviewElements)
-        .slice(0, 20)
+    if (!reviewElements) {
+      throw new Error("Could not find any review elements with known selectors.");
+    }
+
+    // 리뷰 데이터 추출
+    console.log("Extracting review data...");
+    const reviews = await page.evaluate(() => {
+      // 여러 가능한 셀렉터 조합 시도
+      const findElement = (parent: Element, selectors: string[]): Element | null => {
+        for (const selector of selectors) {
+          const element = parent.querySelector(selector);
+          if (element) return element;
+        }
+        return null;
+      };
+
+      // 리뷰 요소들 찾기
+      const reviewElements = Array.from(
+        document.querySelectorAll("div.jJc9Ad, div[data-review-id], div.MyEned")
+      );
+
+      return reviewElements
         .map((element) => {
-          const textElement = element.querySelector("span.wiI7pd");
-          const ratingElement = element.querySelector('span.kvMYJc[role="img"]');
-          const dateElement = element.querySelector("span.rsqaWe");
+          // 텍스트 내용 찾기
+          const textSelectors = ["span.wiI7pd", "div.MyEned", "div[jsan]"];
+          const textElement = findElement(element, textSelectors);
+
+          // 평점 찾기
+          const ratingSelectors = [
+            'span.kvMYJc[role="img"]',
+            'span[aria-label*="stars"]',
+            'div[aria-label*="stars"]',
+          ];
+          const ratingElement = findElement(element, ratingSelectors);
+
+          // 날짜 찾기
+          const dateSelectors = ["span.rsqaWe", 'span[class*="date"]'];
+          const dateElement = findElement(element, dateSelectors);
 
           const text = textElement?.textContent || "";
           const ratingText = ratingElement?.getAttribute("aria-label") || "";
-          const ratingMatch = ratingText.match(/\d+/);
+          // Ensure ratingText is a string before calling match
+          const ratingMatch = typeof ratingText === "string" ? ratingText.match(/\d+/) : null;
           const rating = ratingMatch ? parseInt(ratingMatch[0], 10) : 0;
           const date = dateElement?.textContent || "";
 
@@ -52,10 +96,11 @@ export async function crawlReviews(url: string): Promise<Review[]> {
             rating,
             date: date.trim(),
           };
-        });
-    }, reviewSelector);
+        })
+        .filter((review) => review.text && review.rating > 0); // 유효한 리뷰만 필터링
+    });
 
-    console.log(`Extracted ${reviews.length} reviews.`);
+    console.log(`Extracted ${reviews.length} valid reviews.`);
     return reviews;
   } catch (error) {
     console.error("Error during crawling:", error);

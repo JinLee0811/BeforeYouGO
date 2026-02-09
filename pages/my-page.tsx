@@ -92,7 +92,7 @@ export default function MyPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editingReview, setEditingReview] = useState<Review | null>(null);
-  const { user, isProUser, isLoading } = useUser();
+  const { user, isLoading } = useUser();
   const router = useRouter();
 
   const handleDeleteBookmark = async (id: string) => {

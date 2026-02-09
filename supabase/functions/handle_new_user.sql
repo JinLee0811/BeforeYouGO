@@ -5,11 +5,21 @@ LANGUAGE plpgsql
 SECURITY DEFINER SET search_path = public
 AS $$
 BEGIN
-  INSERT INTO public.profiles (id, email, nickname)
+  INSERT INTO public.profiles (
+    id, 
+    email, 
+    nickname,
+    subscription_type,
+    free_trial_used,
+    subscription_expires_at
+  )
   VALUES (
     NEW.id,
     NEW.email,
-    COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1))
+    COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
+    'free',
+    false,
+    NULL
   );
   RETURN NEW;
 END;

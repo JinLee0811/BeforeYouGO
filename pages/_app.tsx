@@ -2,6 +2,7 @@ import "../styles/globals.css";
 import type { AppProps } from "next/app";
 import { useEffect } from "react";
 import Layout from "../components/layout/Layout";
+import { googleMaps } from "../lib/externalUrls";
 
 declare global {
   interface Window {
@@ -13,7 +14,9 @@ function MyApp({ Component, pageProps }: AppProps) {
   useEffect(() => {
     const loadGoogleMapsScript = () => {
       const script = document.createElement("script");
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places,geometry&loading=async`;
+      const libraries =
+        process.env.NEXT_PUBLIC_GOOGLE_MAPS_LIBRARIES || "places,geometry";
+      script.src = `${googleMaps.jsBaseUrl}?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=${libraries}&loading=async`;
       script.async = true;
       script.defer = true;
       document.head.appendChild(script);
@@ -37,7 +40,7 @@ function MyApp({ Component, pageProps }: AppProps) {
   }, []);
 
   return (
-    <div className='min-h-screen bg-white dark:bg-gray-900 dark:text-white transition-colors'>
+    <div className='min-h-screen text-gray-900 dark:text-white transition-colors'>
       <Layout>
         <Component {...pageProps} />
       </Layout>

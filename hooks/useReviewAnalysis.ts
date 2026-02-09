@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
-import { AnalysisResult, BasicSummaryResult, Review, DetailedAnalysisResult } from "@/types";
 import { supabase } from "@/lib/supabaseClient";
+import { AnalysisResult, BasicSummaryResult, Review, DetailedAnalysisResult } from "@/types";
 
 // Define the extended type for selectedRestaurant state
 interface SelectedRestaurantState {
@@ -22,6 +22,19 @@ export const useReviewAnalysis = () => {
   );
   const reviewResultRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  const markDemoUsage = () => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("demo_free_analysis_used", "true");
+    }
+  };
+
+  const getAccessToken = async () => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    return session?.access_token || null;
+  };
 
   // Modify handleSubmit to accept url as string | undefined
   const handleSubmit = async (url: string | undefined, placeId?: string) => {
@@ -51,13 +64,22 @@ export const useReviewAnalysis = () => {
     abortControllerRef.current = new AbortController();
 
     try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        throw new Error("Login required to analyze reviews.");
+      }
+
       // Crawling needs a valid URL
       const crawlResponse = await fetch("/api/crawl", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
         body: JSON.stringify({ url }),
         signal: abortControllerRef.current!.signal,
       });
+      if (crawlResponse.status === 429 && typeof window !== "undefined") {
+        window.location.href = "/pricing";
+        return;
+      }
       const crawlData = await crawlResponse.json();
       if (!crawlData.success || !crawlData.data || crawlData.data.length === 0) {
         throw new Error(crawlData.error || "Failed to fetch reviews or no reviews found.");
@@ -68,16 +90,21 @@ export const useReviewAnalysis = () => {
       const summaryPayload = { reviews: crawlData.data, placeId };
       const summaryResponse = await fetch("/api/summary-basic", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
         body: JSON.stringify(summaryPayload),
         signal: abortControllerRef.current.signal,
       });
+      if (summaryResponse.status === 429 && typeof window !== "undefined") {
+        window.location.href = "/pricing";
+        return;
+      }
       const summaryData = await summaryResponse.json();
       if (!summaryData.success) {
         throw new Error(summaryData.error || "Failed to generate basic summary.");
       }
       setResult(summaryData.data);
       console.log("Basic flow: Basic summary received.", summaryData.data);
+      markDemoUsage();
 
       setTimeout(() => {
         reviewResultRef.current?.scrollIntoView({
@@ -114,18 +141,22 @@ export const useReviewAnalysis = () => {
     abortControllerRef.current = new AbortController();
 
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      const userId = session?.user?.id;
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        throw new Error("Login required to analyze reviews.");
+      }
 
       console.log(`Detailed flow: Calling /api/analyze for placeId ${placeId}`);
       const analyzeResponse = await fetch("/api/analyze", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ placeId, userId }),
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify({ placeId }),
         signal: abortControllerRef.current.signal,
       });
+      if (analyzeResponse.status === 429 && typeof window !== "undefined") {
+        window.location.href = "/pricing";
+        return;
+      }
 
       const analyzeData = await analyzeResponse.json();
       if (!analyzeData.success) {
@@ -134,6 +165,7 @@ export const useReviewAnalysis = () => {
 
       setDetailedResult(analyzeData.data as DetailedAnalysisResult);
       console.log("Detailed flow: Detailed analysis received.", analyzeData.data);
+      markDemoUsage();
 
       setTimeout(() => {
         reviewResultRef.current?.scrollIntoView({

@@ -16,6 +16,9 @@ interface SearchSectionProps {
   onAutocompleteLoad: (autocomplete: google.maps.places.Autocomplete) => void;
   onPlaceChanged: () => void;
   locationInputRef: React.RefObject<HTMLInputElement>;
+  onLoginRequired?: () => void;
+  isLoginModalOpen?: boolean;
+  disableSearchInput?: boolean;
 }
 
 const SearchSection: React.FC<SearchSectionProps> = ({
@@ -28,12 +31,22 @@ const SearchSection: React.FC<SearchSectionProps> = ({
   onAutocompleteLoad,
   onPlaceChanged,
   locationInputRef,
+  onLoginRequired,
+  isLoginModalOpen,
+  disableSearchInput,
 }) => {
+  const shouldPromptLogin = onLoginRequired && !isLoginModalOpen && disableSearchInput;
   return (
     <div className='bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 md:p-8 mb-12 max-w-3xl mx-auto'>
       <div className='flex flex-col sm:flex-row gap-4 mb-4'>
         <button
-          onClick={onFindNearby}
+          onClick={() => {
+            if (shouldPromptLogin) {
+              onLoginRequired();
+              return;
+            }
+            onFindNearby();
+          }}
           disabled={isSearching}
           className='flex-1 flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm whitespace-nowrap'>
           <MapPinIcon className='w-5 h-5 mr-2' />
@@ -42,7 +55,13 @@ const SearchSection: React.FC<SearchSectionProps> = ({
         <div className='flex-1 relative'>
           <Autocomplete
             onLoad={onAutocompleteLoad}
-            onPlaceChanged={onPlaceChanged}
+            onPlaceChanged={() => {
+              if (shouldPromptLogin) {
+                onLoginRequired();
+                return;
+              }
+              onPlaceChanged();
+            }}
             options={{
               types: ["geocode"],
               componentRestrictions: { country: "au" },
@@ -54,14 +73,40 @@ const SearchSection: React.FC<SearchSectionProps> = ({
               placeholder='Or enter a suburb or city'
               value={searchLocationInput}
               onChange={(e) => onSearchLocationInputChange(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") onSearchByLocationText(searchLocationInput);
+              onMouseDown={(event) => {
+                if (disableSearchInput) {
+                  event.preventDefault();
+                  if (shouldPromptLogin) onLoginRequired();
+                }
               }}
+              onClick={() => {
+                if (disableSearchInput && shouldPromptLogin) onLoginRequired();
+              }}
+              onFocus={() => {
+                if (shouldPromptLogin) onLoginRequired();
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  if (shouldPromptLogin) {
+                    onLoginRequired();
+                    return;
+                  }
+                  onSearchByLocationText(searchLocationInput);
+                }
+              }}
+              readOnly={disableSearchInput}
+              aria-disabled={disableSearchInput}
               disabled={isSearching}
             />
           </Autocomplete>
           <button
-            onClick={() => onSearchByLocationText(searchLocationInput)}
+            onClick={() => {
+              if (shouldPromptLogin) {
+                onLoginRequired();
+                return;
+              }
+              onSearchByLocationText(searchLocationInput);
+            }}
             disabled={isSearching || !searchLocationInput.trim()}
             className='absolute right-2 top-1/2 transform -translate-y-1/2 p-2 text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-50 disabled:cursor-not-allowed rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500'
             aria-label='Search location'>

@@ -5,6 +5,9 @@ CREATE TABLE IF NOT EXISTS profiles (
     nickname TEXT,
     profile_image TEXT,
     settings JSONB DEFAULT '{"notifications": {"email": true, "push": true, "reviewResponse": true, "newRestaurant": true}, "language": "ko", "theme": "system"}'::jsonb,
+    subscription_type TEXT DEFAULT 'free',
+    free_trial_used BOOLEAN DEFAULT false,
+    subscription_expires_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );

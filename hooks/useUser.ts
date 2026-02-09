@@ -4,48 +4,49 @@ import { supabase } from "@/lib/supabaseClient";
 
 export function useUser() {
   const [user, setUser] = useState<User | null>(null);
-  const [isProUser, setIsProUser] = useState<boolean>(true); // 테스트 버전에서는 모든 사용자를 Pro로 간주
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
 
-    // Get initial user
-    const getInitialUser = async () => {
+    const getInitialSession = async () => {
       try {
         const {
-          data: { user: initialUser },
-        } = await supabase.auth.getUser();
-
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession();
+        if (sessionError) {
+          throw sessionError;
+        }
         if (mounted) {
+          const initialUser = session?.user ?? null;
           setUser(initialUser);
-          setIsProUser(true);
         }
       } catch (error) {
-        console.error("Error getting initial user:", error);
+        console.error("Error getting initial session:", error);
       } finally {
         if (mounted) {
           setIsLoading(false);
         }
       }
     };
-    getInitialUser();
 
-    // Listen for changes on auth state change
+    getInitialSession();
+
     const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+      data: { subscription: authSubscription },
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (mounted) {
-        setUser(session?.user ?? null);
-        setIsProUser(true);
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
       }
     });
 
     return () => {
       mounted = false;
-      subscription.unsubscribe();
+      authSubscription.unsubscribe();
     };
   }, []);
 
-  return { user, isProUser, isLoading };
+  return { user, isLoading };
 }

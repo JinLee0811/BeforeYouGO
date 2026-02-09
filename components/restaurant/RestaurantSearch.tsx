@@ -7,28 +7,6 @@ import SearchInput from "./SearchInput";
 
 export function RestaurantSearch() {
   const {
-    restaurants,
-    isSearching,
-    hasSearched,
-    error,
-    filters,
-    searchNearby,
-    handleFilterChange,
-    resetSearch,
-    setError,
-    setIsSearching,
-  } = useRestaurantSearch();
-
-  const [searchValue, setSearchValue] = useState("");
-  const handleSearch = () => {
-    console.log("Search triggered with:", searchValue);
-  };
-
-  const handleRestaurantSelect = (placeId: string, name: string, url: string) => {
-    console.log("Restaurant selected:", placeId, name);
-  };
-
-  const {
     autocompleteInstance: autocomplete,
     isLoaded,
     loadError,
@@ -36,6 +14,28 @@ export function RestaurantSearch() {
     getPlaceDetails,
     geocodeLocation,
   } = useGoogleMaps();
+
+  const {
+    restaurants,
+    isSearching,
+    hasSearched,
+    error,
+    searchLocationInput,
+    setSearchLocationInput,
+    findNearby,
+    searchByLocationText,
+    onPlaceChanged,
+  } = useRestaurantSearch(isLoaded);
+
+  const [searchValue, setSearchValue] = useState("");
+
+  const handleSearch = () => {
+    console.log("Search triggered with:", searchValue);
+  };
+
+  const handleRestaurantSelect = (placeId: string, name: string, url: string) => {
+    console.log("Restaurant selected:", placeId, name);
+  };
 
   useEffect(() => {
     if (isLoaded && !loadError) {
@@ -58,16 +58,10 @@ export function RestaurantSearch() {
     if (!place.geometry?.location) {
       if (typeof address === "string" && address.trim()) {
         try {
-          setIsSearching(true);
-          const coords = await geocodeLocation(address);
-          searchNearby(coords);
+          searchByLocationText(address);
         } catch (error) {
-          setError("Could not find the location. Please try a different search.");
-          setIsSearching(false);
+          console.error("Error searching by location:", error);
         }
-      } else {
-        setError("Could not determine location from the selected place.");
-        setIsSearching(false);
       }
       return;
     }
@@ -76,7 +70,7 @@ export function RestaurantSearch() {
       lat: place.geometry.location.lat(),
       lng: place.geometry.location.lng(),
     };
-    searchNearby(coords);
+    findNearby();
   };
 
   if (!isLoaded) return <div>Loading...</div>;
@@ -85,7 +79,6 @@ export function RestaurantSearch() {
   return (
     <div className='w-full max-w-4xl mx-auto p-4 space-y-6'>
       <SearchInput value={searchValue} onChange={setSearchValue} onSearch={handleSearch} />
-      <SearchFilters filters={filters} onFilterChange={handleFilterChange} />
 
       {isSearching && <div className='text-center py-4'>Loading restaurants...</div>}
       {error && <div className='text-center py-4 text-red-600'>{error}</div>}

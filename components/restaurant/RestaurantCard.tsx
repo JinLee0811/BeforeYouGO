@@ -28,7 +28,7 @@ export default function RestaurantCard({
   return (
     <div
       onClick={onClick}
-      className='group bg-white dark:bg-gray-800 rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer overflow-hidden'>
+      className='group cursor-pointer overflow-hidden rounded-2xl border border-indigo-100/80 bg-white/90 shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-xl'>
       <div className='relative h-48 w-full'>
         {photos && photos.length > 0 ? (
           <Image
@@ -40,22 +40,22 @@ export default function RestaurantCard({
             priority={isFirst}
           />
         ) : (
-          <div className='w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center'>
-            <MapPinIcon className='w-16 h-16 text-blue-400/70 dark:text-blue-300/70' />
+          <div className='flex h-full w-full items-center justify-center bg-slate-100'>
+            <MapPinIcon className='h-16 w-16 text-indigo-400/70' />
           </div>
         )}
       </div>
       <div className='p-6'>
-        <h3 className='font-semibold text-xl text-gray-900 dark:text-white mb-3 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors'>
+        <h3 className='byg-title mb-3 text-xl font-semibold text-slate-900 transition-colors group-hover:text-indigo-600'>
           {name}
         </h3>
-        <div className='flex items-center justify-between mb-4'>
-          <div className='flex items-center text-gray-600 dark:text-gray-300'>
-            <MapPinIcon className='w-5 h-5 mr-2 flex-shrink-0 text-blue-500/70 dark:text-blue-400/70' />
+        <div className='mb-4 flex items-center justify-between'>
+          <div className='flex items-center text-slate-600'>
+            <MapPinIcon className='mr-2 h-5 w-5 flex-shrink-0 text-indigo-500/70' />
             <p className='text-sm truncate'>{vicinity}</p>
           </div>
           {priceLevel > 0 && (
-            <span className='text-gray-600 dark:text-gray-300 text-sm font-medium'>
+            <span className='text-sm font-medium text-slate-600'>
               {priceText}
             </span>
           )}
@@ -66,13 +66,11 @@ export default function RestaurantCard({
               {[...Array(5)].map((_, i) => (
                 <StarIcon
                   key={i}
-                  className={`w-5 h-5 ${
-                    i < Math.floor(rating) ? "" : "text-gray-300 dark:text-gray-600"
-                  }`}
+                  className={`w-5 h-5 ${i < Math.floor(rating) ? "" : "text-gray-300"}`}
                 />
               ))}
             </div>
-            <span className='ml-2 text-sm font-medium text-gray-600 dark:text-gray-300'>
+            <span className='ml-2 text-sm font-medium text-slate-600'>
               {rating.toFixed(1)}
             </span>
           </div>

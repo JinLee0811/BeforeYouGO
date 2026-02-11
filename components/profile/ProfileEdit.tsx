@@ -50,7 +50,7 @@ export default function ProfileEdit({ profile, onProfileUpdate }: ProfileEditPro
   };
 
   return (
-    <div className='bg-white/40 dark:bg-gray-800/40 backdrop-blur-sm rounded-3xl p-6 hover:bg-white/50 dark:hover:bg-gray-800/50 transition-all duration-300 border border-gray-200/50 dark:border-gray-700/50'>
+    <div className='rounded-3xl border border-indigo-100/80 bg-white/80 p-6 backdrop-blur-sm transition-all duration-300 hover:bg-white/90'>
       {/* Removed flex wrapper that included image */}
       <div className='flex-1 min-w-0'>
         {" "}
@@ -62,13 +62,13 @@ export default function ProfileEdit({ profile, onProfileUpdate }: ProfileEditPro
                 type='text'
                 value={nickname}
                 onChange={(e) => setNickname(e.target.value)}
-                className='flex-1 px-4 py-2 bg-white/80 dark:bg-gray-700/80 backdrop-blur rounded-xl border-0 focus:outline-none focus:ring-2 focus:ring-blue-500/50 dark:focus:ring-blue-400/50 text-lg font-medium text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500'
+                className='flex-1 rounded-xl border border-indigo-100 bg-white px-4 py-2 text-lg font-medium text-slate-900 outline-none focus:ring-2 focus:ring-indigo-300 placeholder:text-slate-400'
                 placeholder='Enter your nickname'
               />
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className='p-2 text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 disabled:opacity-50 bg-green-50/80 dark:bg-green-900/30 backdrop-blur rounded-xl hover:bg-green-100/80 dark:hover:bg-green-900/50 transition-colors duration-200'>
+                className='rounded-xl bg-green-50 p-2 text-green-600 transition-colors duration-200 hover:bg-green-100 hover:text-green-700 disabled:opacity-50'>
                 <CheckIcon className='w-5 h-5' />
               </button>
               <button
@@ -76,29 +76,29 @@ export default function ProfileEdit({ profile, onProfileUpdate }: ProfileEditPro
                   setIsEditing(false);
                   setNickname(profile.nickname || "");
                 }}
-                className='p-2 text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 bg-gray-50/80 dark:bg-gray-700/50 backdrop-blur rounded-xl hover:bg-gray-100/80 dark:hover:bg-gray-700/80 transition-colors duration-200'>
+                className='rounded-xl bg-gray-50 p-2 text-gray-600 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-700'>
                 <XMarkIcon className='w-5 h-5' />
               </button>
             </>
           ) : (
             <>
-              <h2 className='text-2xl font-bold text-gray-900 dark:text-white truncate'>
+              <h2 className='byg-title truncate text-2xl font-bold text-slate-900'>
                 {profile.nickname || "User"}
               </h2>
               <button
                 onClick={() => setIsEditing(true)}
-                className='p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 bg-gray-50/80 dark:bg-gray-700/50 backdrop-blur rounded-xl hover:bg-gray-100/80 dark:hover:bg-gray-700/80 transition-colors duration-200'>
+                className='rounded-xl bg-gray-50 p-2 text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-600'>
                 <PencilIcon className='w-5 h-5' />
               </button>
             </>
           )}
         </div>
         <div className='flex items-center gap-4'>
-          <p className='text-gray-500 dark:text-gray-400 text-sm'>
+          <p className='text-sm text-slate-500'>
             Joined {new Date(profile.createdAt).toLocaleDateString()}
           </p>
           {error && (
-            <p className='text-sm text-red-600 dark:text-red-400 bg-red-50/80 dark:bg-red-900/30 backdrop-blur px-3 py-1 rounded-full border border-red-100/50 dark:border-red-800/50'>
+            <p className='rounded-full border border-red-100 bg-red-50 px-3 py-1 text-sm text-red-600'>
               {error}
             </p>
           )}

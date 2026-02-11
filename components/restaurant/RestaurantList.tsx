@@ -47,10 +47,10 @@ export default function RestaurantList({ restaurants, onRestaurantSelect }: Rest
         <button
           key={i}
           onClick={() => handlePageChange(i)}
-          className={`px-4 py-2 rounded-lg transition-colors ${
+          className={`rounded-xl px-4 py-2 transition-colors ${
             currentPage === i
-              ? "bg-blue-600 text-white"
-              : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+              ? "bg-gradient-to-r from-indigo-600 to-fuchsia-600 text-white"
+              : "text-slate-700 hover:bg-white"
           }`}>
           {i}
         </button>
@@ -63,7 +63,7 @@ export default function RestaurantList({ restaurants, onRestaurantSelect }: Rest
   if (!restaurants.length) {
     return (
       <div className='text-center py-8'>
-        <p className='text-gray-500 dark:text-gray-400'>
+        <p className='text-slate-500'>
           No restaurants found matching your criteria.
         </p>
       </div>
@@ -88,7 +88,7 @@ export default function RestaurantList({ restaurants, onRestaurantSelect }: Rest
                 `https://www.google.com/maps/place/?q=place_id:${restaurant.id}`
               )
             }
-            className='bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl hover:scale-[1.02] transition-all duration-200 cursor-pointer overflow-hidden group'>
+            className='group overflow-hidden rounded-2xl border border-indigo-100/80 bg-white/90 shadow-md transition-all duration-200 hover:scale-[1.02] hover:shadow-xl'>
             <div className='relative h-48'>
               <Image
                 src={restaurant.imageUrl || "/placeholder-restaurant.jpg"}
@@ -101,16 +101,16 @@ export default function RestaurantList({ restaurants, onRestaurantSelect }: Rest
               />
               <div className='absolute inset-0 bg-black opacity-0 group-hover:opacity-75 transition-opacity duration-300 flex items-center justify-center'>
                 <div className='flex flex-col items-center gap-2 opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300'>
-                  <div className='group-hover:animate-spin-slow transition-all duration-500'>
-                    <SparklesIcon className='w-8 h-8 text-blue-400' />
+                  <div className='transition-all duration-500 group-hover:animate-spin-slow'>
+                    <SparklesIcon className='h-8 w-8 text-indigo-300' />
                   </div>
-                  <span className='text-white text-lg font-medium'>AI Review Analysis</span>
+                  <span className='text-lg font-medium text-white'>AI Review Analysis</span>
                 </div>
               </div>
-              <div className='absolute top-4 right-4 bg-white dark:bg-gray-800 px-3 py-1 rounded-full shadow-md'>
+              <div className='absolute right-4 top-4 rounded-full bg-white px-3 py-1 shadow-md'>
                 <div className='flex items-center gap-1'>
-                  <StarIcon className='w-5 h-5 text-yellow-400' />
-                  <span className='font-semibold text-gray-900 dark:text-white'>
+                  <StarIcon className='h-5 w-5 text-yellow-400' />
+                  <span className='font-semibold text-slate-900'>
                     {restaurant.rating.toFixed(1)}
                   </span>
                 </div>
@@ -118,27 +118,25 @@ export default function RestaurantList({ restaurants, onRestaurantSelect }: Rest
               {restaurant.isOpenNow !== undefined && (
                 <div
                   className={`absolute top-4 left-4 px-2.5 py-1 rounded-full text-xs font-medium text-white shadow-md ${
-                    restaurant.isOpenNow
-                      ? "bg-green-500 dark:bg-green-600"
-                      : "bg-red-500 dark:bg-red-600"
+                    restaurant.isOpenNow ? "bg-green-500" : "bg-red-500"
                   }`}>
                   {restaurant.isOpenNow ? "Open" : "Closed"}
                 </div>
               )}
             </div>
             <div className='p-4'>
-              <h3 className='text-lg font-semibold text-gray-900 dark:text-white mb-2'>
+              <h3 className='byg-title mb-2 text-lg font-semibold text-slate-900'>
                 {restaurant.name}
               </h3>
-              <div className='flex items-center gap-2 text-gray-600 dark:text-gray-300 mb-2'>
+              <div className='mb-2 flex items-center gap-2 text-slate-600'>
                 <MapPinIcon className='w-4 h-4' />
                 <span className='text-sm'>{formatDistance(restaurant.distance)}</span>
               </div>
-              <p className='text-sm text-gray-500 dark:text-gray-400 line-clamp-2'>
+              <p className='line-clamp-2 text-sm text-slate-500'>
                 {restaurant.address}
               </p>
               <div className='mt-3 flex items-center justify-between'>
-                <span className='text-sm text-gray-600 dark:text-gray-300'>
+                <span className='text-sm text-slate-600'>
                   {restaurant.reviewCount} reviews
                 </span>
               </div>
@@ -152,14 +150,14 @@ export default function RestaurantList({ restaurants, onRestaurantSelect }: Rest
           <button
             onClick={() => handlePageChange(currentPage - 1)}
             disabled={currentPage === 1}
-            className='p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors'>
+            className='rounded-xl p-2 text-slate-700 transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-50'>
             <ChevronLeftIcon className='w-5 h-5' />
           </button>
           {renderPageNumbers()}
           <button
             onClick={() => handlePageChange(currentPage + 1)}
             disabled={currentPage === totalPages}
-            className='p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors'>
+            className='rounded-xl p-2 text-slate-700 transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-50'>
             <ChevronRightIcon className='w-5 h-5' />
           </button>
         </div>

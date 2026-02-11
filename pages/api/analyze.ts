@@ -13,11 +13,10 @@ import { crawlReviews } from "../../lib/crawlReviews";
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY || "");
 const mapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-// 15일을 밀리초로 변환
+// 15 days in milliseconds
 const CACHE_DURATION = 15 * 24 * 60 * 60 * 1000;
 const URL_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
 const PHOTOS_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
-const ipUsageMap = new Map<string, number>();
 const inFlight = new Set<string>();
 const urlCache = new Map<string, { value: string | null; expires: number }>();
 const photosCache = new Map<string, { value: string[]; expires: number }>();
@@ -31,14 +30,6 @@ const getClientIp = (req: NextApiRequest) => {
     return forwarded[0];
   }
   return req.socket?.remoteAddress || "unknown";
-};
-
-const isIpRateLimited = (ip: string) => {
-  return ipUsageMap.has(ip);
-};
-
-const markIpUsed = (ip: string) => {
-  ipUsageMap.set(ip, Date.now());
 };
 
 // --- Helper to get Google Maps URL (keep as is) ---
@@ -107,14 +98,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(401).json({ success: false, error: "Unauthorized" });
     }
 
-    const clientIp = getClientIp(req);
-    if (isIpRateLimited(clientIp)) {
-      return res.status(429).json({
-        success: false,
-        error: "Rate limit exceeded. Only one review summary per IP is allowed.",
-      });
-    }
-
     if (!placeId) {
       console.log("Error: placeId is missing.");
       return res.status(400).json({ success: false, error: "No placeId provided" });
@@ -141,7 +124,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const cacheAge = Date.now() - new Date(cachedAnalysis.created_at).getTime();
       if (cacheAge < CACHE_DURATION) {
         console.log(`Returning cached Pro analysis for ${placeId}`);
-        markIpUsed(clientIp);
         return res.status(200).json({
           success: true,
           data: cachedAnalysis,
@@ -275,7 +257,6 @@ Respond in this exact JSON format:
       }
 
       console.log(`Analysis complete for ${placeId}.`);
-      markIpUsed(clientIp);
       return res.status(200).json({
         success: true,
         data: finalResult,

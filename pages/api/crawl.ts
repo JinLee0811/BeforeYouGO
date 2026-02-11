@@ -1,11 +1,29 @@
 import { NextApiRequest, NextApiResponse } from "next";
+import axios from "axios";
 import { crawlReviews } from "../../lib/crawlReviews";
+import { googleMaps } from "../../lib/externalUrls";
 import { supabase } from "../../lib/supabaseClient";
 import { ApiResponse, Review } from "../../types";
 
 const RATE_LIMIT_WINDOW_MS = 5000;
 const ipUsageMap = new Map<string, number>();
 const inFlight = new Set<string>();
+const mapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+
+const fetchReviewsFromPlaces = async (placeId: string): Promise<Review[]> => {
+  if (!mapsApiKey) return [];
+  const detailsUrl = `${googleMaps.placesDetailsUrl}?place_id=${placeId}&fields=reviews&key=${mapsApiKey}`;
+  const response = await axios.get(detailsUrl);
+  const reviews = response.data?.result?.reviews;
+  if (!Array.isArray(reviews)) return [];
+  return reviews
+    .map((review: { text?: string; rating?: number; relative_time_description?: string }) => ({
+      text: (review.text || "").trim(),
+      rating: typeof review.rating === "number" ? review.rating : 0,
+      date: (review.relative_time_description || "").trim(),
+    }))
+    .filter((review) => review.text && review.rating > 0);
+};
 
 const getClientIp = (req: NextApiRequest) => {
   const forwarded = req.headers["x-forwarded-for"];
@@ -35,10 +53,23 @@ export default async function handler(
     return res.status(405).json({ success: false, error: "Method not allowed" });
   }
 
-  const { url } = req.body;
+  const { url, placeId } = req.body;
 
-  if (!url) {
-    return res.status(400).json({ success: false, error: "URL is required" });
+  const isValidMapsUrl = (value: string | undefined) => {
+    if (!value) return false;
+    if (!value.startsWith("https://")) return false;
+    return (
+      value.includes("google.com/maps") ||
+      value.includes("goo.gl/maps") ||
+      value.includes("maps.app.goo.gl")
+    );
+  };
+
+  const effectiveUrl =
+    isValidMapsUrl(url) && url ? url : placeId ? `https://www.google.com/maps/place/?q=place_id:${placeId}` : url;
+
+  if (!effectiveUrl) {
+    return res.status(400).json({ success: false, error: "URL or placeId is required" });
   }
 
   try {
@@ -60,15 +91,24 @@ export default async function handler(
       });
     }
 
-    if (inFlight.has(url)) {
+    if (inFlight.has(effectiveUrl)) {
       return res.status(429).json({
         success: false,
         error: "Crawling already in progress for this URL.",
       });
     }
-    inFlight.add(url);
+    inFlight.add(effectiveUrl);
     markIpUsed(clientIp);
-    const reviews = await crawlReviews(url);
+    let reviews: Review[] = [];
+    if (placeId) {
+      reviews = await fetchReviewsFromPlaces(placeId);
+    }
+    if (!reviews || reviews.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: "Failed to fetch reviews from Places API.",
+      });
+    }
     return res.status(200).json({ success: true, data: reviews });
   } catch (error) {
     console.error("Crawling error:", error);
@@ -77,8 +117,8 @@ export default async function handler(
       error: "Failed to crawl reviews",
     });
   } finally {
-    if (url) {
-      inFlight.delete(url);
+    if (effectiveUrl) {
+      inFlight.delete(effectiveUrl);
     }
   }
 }

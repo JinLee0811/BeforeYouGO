@@ -289,22 +289,22 @@ export default function MyPage() {
 
   if (isLoading) {
     return (
-      <div className='flex justify-center items-center min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900'>
-        <div className='w-10 h-10 border-4 border-blue-500 dark:border-blue-400 border-t-transparent rounded-full animate-spin'></div>
+      <div className='flex min-h-screen items-center justify-center'>
+        <div className='h-10 w-10 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent'></div>
       </div>
     );
   }
 
   return (
-    <div className='min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors'>
+    <div className='min-h-screen transition-colors'>
       {profile && (
-        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
+        <div className='mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8'>
           {/* Profile Header */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className='bg-white/80 dark:bg-gray-800/80 backdrop-blur rounded-3xl overflow-hidden mb-8 transition-colors'>
+            className='byg-panel mb-8 overflow-hidden transition-colors'>
             <div className='p-8'>
               <div className='mb-8'>
                 <ProfileEdit profile={profile} onProfileUpdate={setProfile} />
@@ -316,10 +316,10 @@ export default function MyPage() {
                   whileHover={{ scale: 1.03, y: -1 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setActiveTab("bookmarks")}
-                  className={`flex items-center py-3 px-4 rounded-xl transition-all duration-200 ${
+                  className={`flex items-center rounded-xl px-4 py-3 transition-all duration-200 ${
                     activeTab === "bookmarks"
-                      ? "bg-blue-600 text-white font-medium shadow-md"
-                      : "text-gray-600 dark:text-gray-300 hover:bg-white/60 dark:hover:bg-gray-700/60 hover:text-blue-500"
+                      ? "bg-gradient-to-r from-indigo-600 to-fuchsia-600 text-white font-medium shadow-md"
+                      : "text-slate-600 hover:bg-white hover:text-indigo-500"
                   }`}>
                   <BookmarkIcon className='w-5 h-5 mr-2' />
                   Saved Restaurants
@@ -328,10 +328,10 @@ export default function MyPage() {
                   whileHover={{ scale: 1.03, y: -1 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setActiveTab("reviews")}
-                  className={`flex items-center py-3 px-4 rounded-xl transition-all duration-200 ${
+                  className={`flex items-center rounded-xl px-4 py-3 transition-all duration-200 ${
                     activeTab === "reviews"
-                      ? "bg-blue-600 text-white font-medium shadow-md"
-                      : "text-gray-600 dark:text-gray-300 hover:bg-white/60 dark:hover:bg-gray-700/60 hover:text-blue-500"
+                      ? "bg-gradient-to-r from-indigo-600 to-fuchsia-600 text-white font-medium shadow-md"
+                      : "text-slate-600 hover:bg-white hover:text-indigo-500"
                   }`}>
                   <ChatBubbleBottomCenterTextIcon className='w-5 h-5 mr-2' />
                   My Reviews
@@ -385,15 +385,15 @@ export default function MyPage() {
                       variants={itemVariants}
                       initial='hidden'
                       animate='visible'
-                      className='col-span-full bg-white/80 dark:bg-gray-800/80 backdrop-blur rounded-xl p-8'>
+                      className='byg-panel-soft col-span-full p-8'>
                       <div className='flex flex-col items-center justify-center text-center'>
-                        <div className='w-20 h-20 bg-blue-50 dark:bg-blue-900/30 rounded-xl flex items-center justify-center mb-6'>
-                          <BookmarkIcon className='w-10 h-10 text-blue-500/70 dark:text-blue-400/70' />
+                        <div className='mb-6 flex h-20 w-20 items-center justify-center rounded-xl bg-indigo-50'>
+                          <BookmarkIcon className='h-10 w-10 text-indigo-500/70' />
                         </div>
-                        <h3 className='text-xl font-medium text-gray-900 dark:text-white mb-2'>
+                        <h3 className='byg-title mb-2 text-xl font-medium text-slate-900'>
                           No Saved Restaurants
                         </h3>
-                        <p className='text-gray-600 dark:text-gray-300 max-w-md text-sm'>
+                        <p className='max-w-md text-sm text-slate-600'>
                           Start exploring and save your favorite restaurants to your wishlist!
                         </p>
                       </div>
@@ -412,28 +412,25 @@ export default function MyPage() {
                       <motion.div
                         key={review.id}
                         variants={itemVariants}
-                        className='bg-white/80 dark:bg-gray-800/80 backdrop-blur rounded-3xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 hover:bg-white dark:hover:bg-gray-800 group'>
+                        className='byg-panel-soft group rounded-3xl p-8 transition-all duration-300 hover:-translate-y-0.5 hover:bg-white hover:shadow-xl'>
                         <div className='flex items-start gap-8'>
                           <div className='flex-1'>
                             <div className='flex items-center justify-between mb-6'>
-                              <h3 className='font-semibold text-2xl text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200'>
+                              <h3 className='byg-title text-2xl font-semibold text-slate-900 transition-colors duration-200 group-hover:text-indigo-600'>
                                 {review.restaurant_name}
                               </h3>
                               <div className='flex items-center space-x-4'>
-                                <div className='flex items-center bg-yellow-50/80 dark:bg-yellow-900/30 px-5 py-2.5 rounded-xl'>
-                                  <div className='flex text-yellow-400 mr-2'>
+                                <div className='flex items-center rounded-xl bg-yellow-50 px-5 py-2.5'>
+                                  <div className='mr-2 flex text-yellow-400'>
                                     {[...Array(5)].map((_, i) =>
                                       i < review.rating ? (
                                         <StarIconSolid key={i} className='w-6 h-6' />
                                       ) : (
-                                        <StarIcon
-                                          key={i}
-                                          className='w-6 h-6 text-gray-300 dark:text-gray-600'
-                                        />
+                                        <StarIcon key={i} className='w-6 h-6 text-gray-300' />
                                       )
                                     )}
                                   </div>
-                                  <span className='text-yellow-700 dark:text-yellow-500 font-semibold text-lg'>
+                                  <span className='text-lg font-semibold text-yellow-700'>
                                     {review.rating}/5
                                   </span>
                                 </div>
@@ -442,7 +439,7 @@ export default function MyPage() {
                                     whileHover={{ scale: 1.1, rotate: -5 }}
                                     whileTap={{ scale: 0.95 }}
                                     onClick={() => setEditingReview(review)}
-                                    className='p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors'
+                                    className='rounded-full p-2 text-slate-400 transition-colors hover:bg-indigo-50 hover:text-indigo-600'
                                     title='Edit review'>
                                     <PencilIcon className='w-5 h-5' />
                                   </motion.button>
@@ -450,22 +447,22 @@ export default function MyPage() {
                                     whileHover={{ scale: 1.1, rotate: 5 }}
                                     whileTap={{ scale: 0.95 }}
                                     onClick={() => handleDeleteReview(review.id)}
-                                    className='p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors'
+                                    className='rounded-full p-2 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600'
                                     title='Delete review'>
                                     <TrashIcon className='w-5 h-5' />
                                   </motion.button>
                                 </div>
                               </div>
                             </div>
-                            <div className='flex items-center text-gray-600 dark:text-gray-300 mb-6'>
-                              <MapPinIcon className='w-5 h-5 mr-3 flex-shrink-0 text-blue-500/70 dark:text-blue-400/70' />
+                            <div className='mb-6 flex items-center text-slate-600'>
+                              <MapPinIcon className='mr-3 h-5 w-5 flex-shrink-0 text-indigo-500/70' />
                               <p className='text-base'>{review.restaurant_address}</p>
                             </div>
-                            <p className='text-gray-700 dark:text-gray-200 text-lg mb-6 leading-relaxed'>
+                            <p className='mb-6 text-lg leading-relaxed text-slate-700'>
                               {review.content}
                             </p>
-                            <div className='flex items-center text-gray-500 dark:text-gray-400'>
-                              <ClockIcon className='w-5 h-5 mr-3 text-blue-500/70 dark:text-blue-400/70' />
+                            <div className='flex items-center text-slate-500'>
+                              <ClockIcon className='mr-3 h-5 w-5 text-indigo-500/70' />
                               <span className='text-base'>
                                 Reviewed on {new Date(review.created_at).toLocaleDateString()}
                               </span>
@@ -479,15 +476,15 @@ export default function MyPage() {
                       variants={itemVariants}
                       initial='hidden'
                       animate='visible'
-                      className='bg-white/80 dark:bg-gray-800/80 backdrop-blur rounded-3xl p-12'>
+                      className='byg-panel-soft rounded-3xl p-12'>
                       <div className='flex flex-col items-center justify-center text-center'>
-                        <div className='w-24 h-24 bg-blue-50 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center mb-8'>
-                          <ChatBubbleBottomCenterTextIcon className='w-12 h-12 text-blue-500/70 dark:text-blue-400/70' />
+                        <div className='mb-8 flex h-24 w-24 items-center justify-center rounded-2xl bg-indigo-50'>
+                          <ChatBubbleBottomCenterTextIcon className='h-12 w-12 text-indigo-500/70' />
                         </div>
-                        <h3 className='text-2xl font-medium text-gray-900 dark:text-white mb-4'>
+                        <h3 className='byg-title mb-4 text-2xl font-medium text-slate-900'>
                           No Reviews Yet
                         </h3>
-                        <p className='text-gray-600 dark:text-gray-300 max-w-md'>
+                        <p className='max-w-md text-slate-600'>
                           Share your honest reviews about the restaurants you've visited!
                         </p>
                       </div>

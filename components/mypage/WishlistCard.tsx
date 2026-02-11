@@ -9,7 +9,7 @@ import {
   PhotoIcon,
   SparklesIcon,
 } from "@heroicons/react/24/outline";
-import { AnalysisResult } from "@/types";
+import { DetailedAnalysisResult } from "@/types";
 import AnalysisModal from "./AnalysisModal";
 import ReviewForm from "../review/ReviewForm";
 
@@ -53,7 +53,7 @@ export default function WishlistCard({
   const [showModal, setShowModal] = useState(false);
   const [showReviewForm, setShowReviewForm] = useState(false);
 
-  const analysisResult: AnalysisResult = {
+  const analysisResult: DetailedAnalysisResult = {
     average_rating: averageRating || 0,
     sentiment: sentiment || "mixed",
     positive_keywords: positiveKeywords || [],
@@ -61,7 +61,7 @@ export default function WishlistCard({
     mentioned_menu_items: mentionedMenuItems || [],
     recommended_dishes: recommendedDishes || [],
     summary: summary || "",
-    photoUrls: photoUrls || [],
+    photo_urls: photoUrls || [],
     is_pro_analysis: isProAnalysis,
   };
 
@@ -89,7 +89,7 @@ export default function WishlistCard({
     <>
       <div
         onClick={() => setShowModal(true)}
-        className='group bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer flex'>
+        className='group flex cursor-pointer overflow-hidden rounded-2xl border border-indigo-100/80 bg-white/90 shadow-sm transition-all duration-300 hover:shadow-lg'>
         <div className='w-24 h-24 sm:w-32 sm:h-32 flex-shrink-0 relative'>
           {displayImageUrl ? (
             <img
@@ -98,18 +98,18 @@ export default function WishlistCard({
               className='w-full h-full object-cover'
             />
           ) : (
-            <div className='w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center'>
-              <PhotoIcon className='w-10 h-10 text-gray-400 dark:text-gray-500' />
+            <div className='flex h-full w-full items-center justify-center bg-slate-100'>
+              <PhotoIcon className='h-10 w-10 text-slate-400' />
             </div>
           )}
         </div>
 
         <div className='flex-1 p-3 sm:p-4 flex flex-col justify-between min-w-0'>
           <div>
-            <h3 className='text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-1 line-clamp-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors'>
+            <h3 className='byg-title mb-1 line-clamp-2 text-base font-semibold text-slate-900 transition-colors group-hover:text-indigo-600 sm:text-lg'>
               {restaurantName}
             </h3>
-            <p className='text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-2 line-clamp-1'>
+            <p className='mb-2 line-clamp-1 text-xs text-slate-500 sm:text-sm'>
               {address}
             </p>
           </div>
@@ -126,19 +126,19 @@ export default function WishlistCard({
                       />
                     ))}
                   </div>
-                  <span className='ml-1.5 text-xs sm:text-sm text-gray-600 dark:text-gray-400'>
+                  <span className='ml-1.5 text-xs text-slate-600 sm:text-sm'>
                     {averageRating.toFixed(1)}
                   </span>
                 </div>
               )}
               {sentiment && (
                 <span
-                  className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${sentiment === "positive" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300" : sentiment === "negative" ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300" : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"}`}>
+                  className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${sentiment === "positive" ? "bg-green-100 text-green-800" : sentiment === "negative" ? "bg-red-100 text-red-800" : "bg-yellow-100 text-yellow-800"}`}>
                   {sentiment.charAt(0).toUpperCase() + sentiment.slice(1)}
                 </span>
               )}
               {isProAnalysis && (
-                <span className='inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300'>
+                <span className='inline-flex items-center gap-1 rounded-full bg-fuchsia-100 px-2 py-0.5 text-xs font-medium text-fuchsia-800'>
                   <SparklesIcon className='w-3 h-3' />
                   Pro
                 </span>
@@ -147,13 +147,13 @@ export default function WishlistCard({
             <div className='flex items-center space-x-1 sm:space-x-1.5 flex-shrink-0'>
               <button
                 onClick={handleReviewClick}
-                className='p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-100 dark:hover:bg-gray-700 rounded-full transition-colors'
+                className='rounded-full p-1.5 text-slate-400 transition-colors hover:bg-indigo-100 hover:text-indigo-600'
                 title='Write a review'>
                 <PencilSquareIcon className='w-4 h-4 sm:w-5 sm:h-5' />
               </button>
               <button
                 onClick={handleDelete}
-                className='p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-gray-700 rounded-full transition-colors'
+                className='rounded-full p-1.5 text-slate-400 transition-colors hover:bg-red-100 hover:text-red-600'
                 title='Remove from wishlist'>
                 <TrashIcon className='w-4 h-4 sm:w-5 sm:h-5' />
               </button>

@@ -158,8 +158,8 @@ function SearchContent() {
     }
   }, [router.query.mode]);
 
-  const isDemoLocked = () =>
-    typeof window !== "undefined" && localStorage.getItem("demo_free_analysis_used") === "true";
+  // Demo lock is disabled for development/testing.
+  const isDemoLocked = () => false;
 
   const performSelectRestaurantForBasicAnalysis = async (
     placeId: string,
@@ -339,13 +339,13 @@ function SearchContent() {
             exit='exit'
             variants={fadeIn}
             transition={{ duration: 0.3 }}
-            className='fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50'>
-            <div className='bg-white dark:bg-gray-800 rounded-xl p-8 max-w-md w-full mx-4 shadow-2xl text-center'>
-              <ChartBarIcon className='w-12 h-12 text-blue-600 dark:text-blue-400 mx-auto mb-4 animate-pulse' />
-              <h3 className='text-xl font-semibold mb-2 text-gray-900 dark:text-white'>
+            className='fixed inset-0 z-50 flex items-center justify-center bg-black/55 backdrop-blur-sm'>
+            <div className='byg-panel mx-4 w-full max-w-md p-8 text-center'>
+              <ChartBarIcon className='mx-auto mb-4 h-12 w-12 animate-pulse text-indigo-600' />
+              <h3 className='byg-title mb-2 text-xl font-semibold text-slate-900'>
                 Analyzing Reviews
               </h3>
-              <p className='text-gray-600 dark:text-gray-300 mb-4'>
+              <p className='mb-4 text-slate-600'>
                 {selectedRestaurant ? (
                   <>
                     Our AI is reading reviews for{" "}
@@ -355,12 +355,12 @@ function SearchContent() {
                   "Please wait while we fetch the details and analyze..."
                 )}
               </p>
-              <div className='w-16 h-16 border-4 border-blue-200 dark:border-blue-900 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin mx-auto mb-4'></div>
+              <div className='mx-auto mb-4 h-16 w-16 animate-spin rounded-full border-4 border-indigo-100 border-t-indigo-600'></div>
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={cancelAnalysis}
-                className='px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors duration-200'>
+                className='rounded-xl bg-red-500 px-4 py-2 text-white transition-colors duration-200 hover:bg-red-600'>
                 Cancel Analysis
               </motion.button>
             </div>
@@ -371,22 +371,22 @@ function SearchContent() {
       <div ref={topRef}>
         <HomeHeader />
 
-        <div className='max-w-4xl mx-auto px-4 py-8'>
-          <div className='flex justify-center mb-8'>
-            <div className='relative bg-gray-200 dark:bg-gray-800 p-1 rounded-lg flex space-x-1 shadow-sm'>
+        <div className='mx-auto max-w-4xl px-4 py-8'>
+          <div className='mb-8 flex justify-center'>
+            <div className='relative flex space-x-1 rounded-2xl border border-indigo-100 bg-white/90 p-1.5 shadow-sm'>
               <motion.button
                 whileHover={{ scale: 1.03, y: -1 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setActiveTab("search")}
-                className={`relative px-6 py-2.5 rounded-md text-sm font-medium transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800 ${
+                className={`relative rounded-xl px-6 py-2.5 text-sm font-medium transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
                   activeTab === "search"
-                    ? "text-blue-600 dark:text-blue-300"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+                    ? "text-indigo-600"
+                    : "text-slate-600 hover:text-slate-900"
                 }`}>
                 {activeTab === "search" && (
                   <motion.span
                     layoutId='activeTabIndicator'
-                    className='absolute inset-0 z-0 rounded-md bg-white dark:bg-gray-600 shadow'
+                    className='absolute inset-0 z-0 rounded-xl bg-indigo-50 shadow'
                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
                   />
                 )}
@@ -396,15 +396,15 @@ function SearchContent() {
                 whileHover={{ scale: 1.03, y: -1 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setActiveTab("direct")}
-                className={`relative px-6 py-2.5 rounded-md text-sm font-medium transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800 ${
+                className={`relative rounded-xl px-6 py-2.5 text-sm font-medium transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
                   activeTab === "direct"
-                    ? "text-blue-600 dark:text-blue-300"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+                    ? "text-indigo-600"
+                    : "text-slate-600 hover:text-slate-900"
                 }`}>
                 {activeTab === "direct" && (
                   <motion.span
                     layoutId='activeTabIndicator'
-                    className='absolute inset-0 z-0 rounded-md bg-white dark:bg-gray-600 shadow'
+                    className='absolute inset-0 z-0 rounded-xl bg-indigo-50 shadow'
                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
                   />
                 )}

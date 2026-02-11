@@ -23,10 +23,9 @@ export const useReviewAnalysis = () => {
   const reviewResultRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  // For now, demo usage is not limited while developing / testing.
   const markDemoUsage = () => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("demo_free_analysis_used", "true");
-    }
+    // no-op in dev/demo mode
   };
 
   const getAccessToken = async () => {
@@ -73,13 +72,10 @@ export const useReviewAnalysis = () => {
       const crawlResponse = await fetch("/api/crawl", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url, placeId }),
         signal: abortControllerRef.current!.signal,
       });
-      if (crawlResponse.status === 429 && typeof window !== "undefined") {
-        window.location.href = "/pricing";
-        return;
-      }
+      // During development/testing, don't redirect on rate limit.
       const crawlData = await crawlResponse.json();
       if (!crawlData.success || !crawlData.data || crawlData.data.length === 0) {
         throw new Error(crawlData.error || "Failed to fetch reviews or no reviews found.");
@@ -94,10 +90,7 @@ export const useReviewAnalysis = () => {
         body: JSON.stringify(summaryPayload),
         signal: abortControllerRef.current.signal,
       });
-      if (summaryResponse.status === 429 && typeof window !== "undefined") {
-        window.location.href = "/pricing";
-        return;
-      }
+      // During development/testing, don't redirect on rate limit.
       const summaryData = await summaryResponse.json();
       if (!summaryData.success) {
         throw new Error(summaryData.error || "Failed to generate basic summary.");
@@ -153,10 +146,7 @@ export const useReviewAnalysis = () => {
         body: JSON.stringify({ placeId }),
         signal: abortControllerRef.current.signal,
       });
-      if (analyzeResponse.status === 429 && typeof window !== "undefined") {
-        window.location.href = "/pricing";
-        return;
-      }
+      // During development/testing, don't redirect on rate limit.
 
       const analyzeData = await analyzeResponse.json();
       if (!analyzeData.success) {

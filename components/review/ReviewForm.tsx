@@ -176,15 +176,15 @@ export default function ReviewForm({
   if (!isOpen) return null;
 
   return (
-    <div className='fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 overflow-y-auto py-10'>
-      <div className='bg-white dark:bg-gray-800 rounded-2xl w-full max-w-lg mx-4 my-auto overflow-hidden shadow-xl transform transition-all'>
-        <div className='flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700'>
-          <h2 className='text-xl font-semibold text-gray-900 dark:text-white'>
+    <div className='fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 py-10 backdrop-blur-sm'>
+      <div className='mx-4 my-auto w-full max-w-lg transform overflow-hidden rounded-2xl bg-white shadow-xl transition-all'>
+        <div className='flex items-center justify-between border-b border-indigo-100 px-6 py-4'>
+          <h2 className='byg-title text-xl font-semibold text-slate-900'>
             Write a Review for {restaurantName}
           </h2>
           <button
             onClick={handleClose}
-            className='text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 transition-colors'>
+            className='text-gray-400 transition-colors hover:text-gray-500'>
             <XMarkIcon className='w-6 h-6' />
           </button>
         </div>
@@ -227,7 +227,7 @@ export default function ReviewForm({
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder={`Share your experience at ${restaurantName}...`}
-              className='w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400'
+              className='byg-input'
               required
             />
           </div>
@@ -241,21 +241,21 @@ export default function ReviewForm({
               <button
                 type='button'
                 onClick={() => setUserSentiment("positive")}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border transition-colors ${userSentiment === "positive" ? "bg-green-100 dark:bg-green-900/30 border-green-400 dark:border-green-600 text-green-700 dark:text-green-300" : "bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600"}`}>
+                className={`flex-1 flex items-center justify-center gap-2 rounded-lg border px-4 py-3 transition-colors ${userSentiment === "positive" ? "border-green-400 bg-green-100 text-green-700" : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"}`}>
                 <HandThumbUpIcon className='w-5 h-5' />
                 Positive
               </button>
               <button
                 type='button'
                 onClick={() => setUserSentiment("negative")}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border transition-colors ${userSentiment === "negative" ? "bg-red-100 dark:bg-red-900/30 border-red-400 dark:border-red-600 text-red-700 dark:text-red-300" : "bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600"}`}>
+                className={`flex-1 flex items-center justify-center gap-2 rounded-lg border px-4 py-3 transition-colors ${userSentiment === "negative" ? "border-red-400 bg-red-100 text-red-700" : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"}`}>
                 <HandThumbDownIcon className='w-5 h-5' />
                 Negative
               </button>
               <button
                 type='button'
                 onClick={() => setUserSentiment("mixed")}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border transition-colors ${userSentiment === "mixed" ? "bg-yellow-100 dark:bg-yellow-900/30 border-yellow-400 dark:border-yellow-600 text-yellow-700 dark:text-yellow-300" : "bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600"}`}>
+                className={`flex-1 flex items-center justify-center gap-2 rounded-lg border px-4 py-3 transition-colors ${userSentiment === "mixed" ? "border-yellow-400 bg-yellow-100 text-yellow-700" : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"}`}>
                 <ExclamationCircleIcon className='w-5 h-5' />
                 Mixed
               </button>
@@ -275,7 +275,7 @@ export default function ReviewForm({
               value={mentionedMenuItemsInput}
               onChange={(e) => setMentionedMenuItemsInput(e.target.value)}
               placeholder='e.g., Pizza, Pasta, Salad (comma-separated)'
-              className='w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400'
+              className='byg-input'
             />
           </div>
 
@@ -292,12 +292,12 @@ export default function ReviewForm({
               value={recommendedDishesInput}
               onChange={(e) => setRecommendedDishesInput(e.target.value)}
               placeholder='e.g., Steak, Tiramisu (comma-separated)'
-              className='w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400'
+              className='byg-input'
             />
           </div>
 
           {error && (
-            <div className='p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 text-sm'>
+            <div className='rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600'>
               {error}
             </div>
           )}
@@ -306,13 +306,13 @@ export default function ReviewForm({
             <button
               type='button'
               onClick={handleClose}
-              className='flex-1 px-4 py-3 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors'>
+              className='flex-1 rounded-lg bg-gray-100 px-4 py-3 text-gray-700 transition-colors hover:bg-gray-200'>
               Cancel
             </button>
             <button
               type='submit'
               disabled={isSubmitting}
-              className='flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors'>
+              className='flex-1 rounded-lg bg-gradient-to-r from-indigo-600 to-fuchsia-600 px-4 py-3 text-white transition-colors hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50'>
               {isSubmitting ? "Submitting..." : "Submit Review"}
             </button>
           </div>

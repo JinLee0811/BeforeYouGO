@@ -256,7 +256,7 @@ export default function AnalysisModal({
             aria-hidden='true'
           />
 
-          <div className='relative inline-block w-full max-w-3xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white dark:bg-gray-800 shadow-xl rounded-2xl'>
+          <div className='relative inline-block w-full max-w-3xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white/95 dark:bg-gray-950/90 shadow-2xl rounded-2xl border border-slate-200/70 dark:border-slate-800/80 backdrop-blur-xl'>
             <div className='flex justify-between items-center mb-6'>
               <h3 className='text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white'>
                 {restaurantName}

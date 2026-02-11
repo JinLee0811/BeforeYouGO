@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { AnalysisResult, BasicSummaryResult, DetailedAnalysisResult, Review } from "@/types";
 import { StarIcon } from "@heroicons/react/24/solid";
 import {
@@ -9,18 +9,9 @@ import {
   FireIcon,
   ListBulletIcon,
   PhotoIcon,
-  HeartIcon,
-  PencilSquareIcon,
-  BookmarkIcon as BookmarkIconOutline,
   SparklesIcon,
-  CheckCircleIcon,
-  ArrowPathIcon,
   MapPinIcon,
 } from "@heroicons/react/24/outline";
-import { BookmarkIcon as BookmarkIconSolid } from "@heroicons/react/24/solid";
-import { supabase } from "@/lib/supabaseClient";
-import ReviewForm from "./review/ReviewForm";
-import { useUser } from "@/hooks/useUser";
 import { useRouter } from "next/router";
 
 interface ReviewResultCardProps {
@@ -78,7 +69,7 @@ const SectionTitle: React.FC<{ icon: React.ElementType; text: string; className?
 }) => (
   <div className={`flex items-center gap-2 mb-3 ${className}`}>
     <Icon className='w-5 h-5 flex-shrink-0' />
-    <h3 className='text-base font-medium'>{text}</h3>
+    <h3 className='byg-title text-base font-medium'>{text}</h3>
   </div>
 );
 
@@ -150,111 +141,8 @@ export default function ReviewResultCard({
   isDetailedAnalysisLoading,
   detailedAnalysisError,
 }: ReviewResultCardProps) {
-  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isBookmarked, setIsBookmarked] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [updateSuccess, setUpdateSuccess] = useState(false);
-  const { user } = useUser();
   const router = useRouter();
-
-  // Check initial bookmark status when component mounts or restaurant changes
-  useEffect(() => {
-    const checkBookmarkStatus = async () => {
-      if (!selectedRestaurant || isWishlistView) return;
-      setIsLoading(true); // Show loading indicator while checking
-      setError(null);
-      try {
-        if (!user) {
-          setIsBookmarked(false); // Not logged in, cannot be bookmarked
-          return;
-        }
-        const { data, error: fetchError } = await supabase
-          .from("bookmarks")
-          .select("id")
-          .eq("user_id", user.id)
-          .eq("place_id", selectedRestaurant.placeId)
-          .maybeSingle();
-
-        if (fetchError) throw fetchError;
-        setIsBookmarked(!!data); // Set true if data exists, false otherwise
-      } catch (err: any) {
-        console.error("Error checking bookmark status:", err);
-        setError("Could not check bookmark status."); // Inform user
-        setIsBookmarked(false);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    checkBookmarkStatus();
-  }, [selectedRestaurant, isWishlistView, user]);
-
-  const handleWishlistClick = async () => {
-    if (!selectedRestaurant || isWishlistView) return;
-    setError(null);
-    setIsLoading(true);
-    setUpdateSuccess(false);
-    try {
-      if (!user) {
-        setError("Please log in to save to wishlist");
-        setIsLoading(false);
-        return;
-      }
-
-      const isDetailed = !isBasicSummary && "positive_keywords" in result;
-      const bookmarkData: any = {
-        user_id: user.id,
-        place_id: selectedRestaurant.placeId,
-        restaurant_name: selectedRestaurant.name,
-        restaurant_address: selectedRestaurant.address || "",
-        image_url: selectedRestaurant.photos?.[0] || "",
-        average_rating: result.average_rating,
-        sentiment: result.sentiment,
-        summary: result.summary,
-        is_pro_analysis: isDetailed,
-        positive_keywords: isDetailed ? (result as DetailedAnalysisResult).positive_keywords : [],
-        negative_keywords: isDetailed ? (result as DetailedAnalysisResult).negative_keywords : [],
-        mentioned_menu_items: isDetailed
-          ? (result as DetailedAnalysisResult).mentioned_menu_items
-          : [],
-        recommended_dishes: isDetailed ? (result as DetailedAnalysisResult).recommended_dishes : [],
-        photo_urls: isDetailed ? (result as DetailedAnalysisResult).photo_urls : [],
-      };
-
-      const wasAlreadyBookmarked = isBookmarked;
-
-      const { error: upsertError } = await supabase
-        .from("bookmarks")
-        .upsert(bookmarkData, { onConflict: "user_id, place_id" });
-
-      if (upsertError) throw upsertError;
-
-      setIsBookmarked(true);
-
-      if (wasAlreadyBookmarked) {
-        setUpdateSuccess(true);
-        setTimeout(() => setUpdateSuccess(false), 2000);
-      }
-
-      console.log("Bookmark upsert successful");
-    } catch (err: any) {
-      console.error("Error upserting bookmark:", err);
-      setError(err.message || "Failed to save wishlist item.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleReviewClick = () => {
-    if (typeof window !== "undefined") {
-      const demoUsed = localStorage.getItem("demo_free_analysis_used") === "true";
-      if (demoUsed) {
-        router.push("/pricing");
-        return;
-      }
-    }
-    setIsReviewModalOpen(true);
-  };
 
   // 기본 요약인지 확인
   const isBasic = isBasicSummary || ("fromCache" in result && result.fromCache);
@@ -263,40 +151,33 @@ export default function ReviewResultCard({
   // Cast result to DetailedAnalysisResult for type safety when accessing detailed fields in JSX
   const detailedResultData = isDetailed ? (result as DetailedAnalysisResult) : null;
 
-  // Determine if the button should show the update state
-  const showUpdateState = isBookmarked && isDetailed && !updateSuccess && !isLoading;
-  // Determine if the button should show the saved state
-  const showSavedState = isBookmarked && !isDetailed && !updateSuccess && !isLoading;
-  // Determine if the button should show the add state
-  const showAddState = !isBookmarked && !updateSuccess && !isLoading;
-
   // Determine which photo URLs to use based on the view state
   const photoUrlsToDisplay = isDetailed
     ? detailedResultData?.photo_urls
     : selectedRestaurant?.photos?.slice(0, 1);
 
   return (
-    <div className='bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden flex flex-col h-full'>
+    <div className='byg-panel flex h-full flex-col overflow-hidden rounded-2xl'>
       {/* Header Section - Add Address */}
-      <div className='p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700'>
+      <div className='border-b border-indigo-100 p-4 sm:p-6'>
         <div className='flex flex-col sm:flex-row justify-between sm:items-start'>
           <div className='mb-3 sm:mb-0'>
-            <h2 className='text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1'>
+            <h2 className='byg-title mb-1 text-xl font-bold text-slate-900 sm:text-2xl'>
               {selectedRestaurant?.name ?? "Restaurant Analysis"}
             </h2>
             {/* Display Address */}
             {selectedRestaurant?.address && (
-              <div className='flex items-center text-sm text-gray-500 dark:text-gray-400 mt-1'>
+              <div className='mt-1 flex items-center text-sm text-slate-500'>
                 <MapPinIcon className='w-4 h-4 mr-1.5 flex-shrink-0' />
                 <span>{selectedRestaurant.address}</span>
               </div>
             )}
-            <p className='text-xs font-medium text-gray-500 dark:text-gray-400 mt-2 uppercase tracking-wider'>
+            <p className='mt-2 text-xs font-medium uppercase tracking-wider text-slate-500'>
               AI ANALYSIS REPORT
             </p>
           </div>
           {isBasic && (
-            <div className='flex items-center text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-3 py-1 rounded-full text-xs font-medium self-start sm:self-center'>
+            <div className='self-start rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-600 sm:self-center'>
               <SparklesIcon className='w-4 h-4 mr-1.5' />
               <span>Basic Summary</span>
             </div>
@@ -305,25 +186,25 @@ export default function ReviewResultCard({
       </div>
 
       {/* Card Body Content Sections - Reverted padding and spacing */}
-      <div className='p-4 sm:p-6 space-y-4 flex-grow overflow-y-auto bg-gray-50 dark:bg-gray-800/50'>
+      <div className='flex-grow space-y-4 overflow-y-auto bg-slate-50/70 p-4 sm:p-6'>
         {/* --- Grid Layout for Key Info (Rating, Sentiment) --- */}
         <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
           {/* Average Rating Section */}
-          <SectionWrapper className='bg-yellow-50 dark:bg-yellow-900/20 text-yellow-900 dark:text-yellow-200'>
+          <SectionWrapper className='bg-yellow-50 text-yellow-900'>
             <SectionTitle
               icon={StarIcon}
               text='Average Rating'
-              className='text-yellow-700 dark:text-yellow-200'
+              className='text-yellow-700'
             />
             {renderStars(result?.average_rating)}
           </SectionWrapper>
 
           {/* Overall Sentiment Section - Updated to show tag */}
-          <SectionWrapper className='bg-indigo-50 dark:bg-indigo-900/20 text-indigo-900 dark:text-indigo-200'>
+          <SectionWrapper className='bg-indigo-50 text-indigo-900'>
             <SectionTitle
               icon={ChatBubbleLeftRightIcon}
               text='Overall Sentiment'
-              className='text-indigo-700 dark:text-indigo-200'
+              className='text-indigo-700'
             />
             {/* Render sentiment as a tag like in the image */}
             <Tag
@@ -334,24 +215,24 @@ export default function ReviewResultCard({
         </div>
 
         {/* Summary Section - Reverted styling */}
-        <SectionWrapper className='bg-gray-100 dark:bg-gray-700/50 text-gray-900 dark:text-gray-200'>
+        <SectionWrapper className='bg-white text-slate-900'>
           <SectionTitle
             icon={DocumentTextIcon}
             text='Summary'
-            className='text-gray-700 dark:text-gray-200'
+            className='text-slate-700'
           />
-          <p className='text-sm text-gray-700 dark:text-gray-300 leading-relaxed'>
+          <p className='text-sm leading-relaxed text-slate-700'>
             {result.summary}
           </p>
         </SectionWrapper>
 
         {/* --- Photos Section (RESTORED Layout from old code) --- */}
         {photoUrlsToDisplay && photoUrlsToDisplay.length > 0 && (
-          <SectionWrapper className='bg-gray-100 dark:bg-gray-700/50'>
+          <SectionWrapper className='bg-white'>
             <SectionTitle
               icon={PhotoIcon}
               text='Photos'
-              className='text-gray-700 dark:text-gray-200'
+              className='text-slate-700'
             />
             {/* Use flexbox with horizontal scroll like old code */}
             <div className='flex overflow-x-auto space-x-3 pb-2 -mb-2'>
@@ -378,7 +259,7 @@ export default function ReviewResultCard({
             </div>
             {/* Optional: Add scroll hint like old code if many photos */}
             {photoUrlsToDisplay.length > 3 && (
-              <p className='text-xs text-gray-500 mt-3 text-center'>
+              <p className='mt-3 text-center text-xs text-slate-500'>
                 Scroll horizontally to view more photos
               </p>
             )}
@@ -391,23 +272,23 @@ export default function ReviewResultCard({
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mt-4'>
             {/* Positive Keywords Section */}
             {detailedResultData.positive_keywords && (
-              <SectionWrapper className='bg-green-50 dark:bg-green-900/20 text-green-900 dark:text-green-200'>
+              <SectionWrapper className='bg-green-50 text-green-900'>
                 <SectionTitle
                   icon={HandThumbUpIcon}
                   text='Positive Keywords'
-                  className='text-green-700 dark:text-green-200'
+                  className='text-green-700'
                 />
                 <div className='flex flex-wrap gap-2'>
                   {detailedResultData.positive_keywords.length > 0 ? (
                     detailedResultData.positive_keywords.map((keyword: string, index: number) => (
                       <Tag
                         key={index}
-                        className='border-green-300 dark:border-green-700 text-green-800 dark:text-green-200'>
+                        className='border-green-300 text-green-800'>
                         {keyword}
                       </Tag>
                     ))
                   ) : (
-                    <p className='text-sm text-gray-500 dark:text-gray-400'>
+                    <p className='text-sm text-slate-500'>
                       No specific positive keywords identified.
                     </p>
                   )}
@@ -416,23 +297,23 @@ export default function ReviewResultCard({
             )}
             {/* Negative Keywords Section */}
             {detailedResultData.negative_keywords && (
-              <SectionWrapper className='bg-red-50 dark:bg-red-900/20 text-red-900 dark:text-red-200'>
+              <SectionWrapper className='bg-red-50 text-red-900'>
                 <SectionTitle
                   icon={HandThumbDownIcon}
                   text='Negative Keywords'
-                  className='text-red-700 dark:text-red-200'
+                  className='text-red-700'
                 />
                 <div className='flex flex-wrap gap-2'>
                   {detailedResultData.negative_keywords.length > 0 ? (
                     detailedResultData.negative_keywords.map((keyword: string, index: number) => (
                       <Tag
                         key={index}
-                        className='border-red-300 dark:border-red-700 text-red-800 dark:text-red-200'>
+                        className='border-red-300 text-red-800'>
                         {keyword}
                       </Tag>
                     ))
                   ) : (
-                    <p className='text-sm text-gray-500 dark:text-gray-400'>
+                    <p className='text-sm text-slate-500'>
                       No specific negative keywords identified.
                     </p>
                   )}
@@ -442,17 +323,17 @@ export default function ReviewResultCard({
             {/* Mentioned Menu Items Section */}
             {detailedResultData.mentioned_menu_items &&
               detailedResultData.mentioned_menu_items.length > 0 && (
-                <SectionWrapper className='bg-blue-50 dark:bg-blue-900/20 text-blue-900 dark:text-blue-200'>
+                <SectionWrapper className='bg-blue-50 text-blue-900'>
                   <SectionTitle
                     icon={ListBulletIcon}
                     text='Mentioned Menu Items'
-                    className='text-blue-700 dark:text-blue-200'
+                    className='text-blue-700'
                   />
                   <div className='flex flex-wrap gap-2'>
                     {detailedResultData.mentioned_menu_items.map((item: string, index: number) => (
                       <Tag
                         key={index}
-                        className='border-blue-300 dark:border-blue-700 text-blue-800 dark:text-blue-200'>
+                        className='border-blue-300 text-blue-800'>
                         {item}
                       </Tag>
                     ))}
@@ -462,17 +343,17 @@ export default function ReviewResultCard({
             {/* Recommended Dishes Section */}
             {detailedResultData.recommended_dishes &&
               detailedResultData.recommended_dishes.length > 0 && (
-                <SectionWrapper className='bg-orange-50 dark:bg-orange-900/20 text-orange-900 dark:text-orange-200'>
+                <SectionWrapper className='bg-orange-50 text-orange-900'>
                   <SectionTitle
                     icon={FireIcon}
                     text='Recommended Dishes'
-                    className='text-orange-700 dark:text-orange-200'
+                    className='text-orange-700'
                   />
                   <div className='flex flex-wrap gap-2'>
                     {detailedResultData.recommended_dishes.map((dish: string, index: number) => (
                       <Tag
                         key={index}
-                        className='border-orange-300 dark:border-orange-700 text-orange-800 dark:text-orange-200'>
+                        className='border-orange-300 text-orange-800'>
                         {dish}
                       </Tag>
                     ))}
@@ -481,135 +362,25 @@ export default function ReviewResultCard({
               )}
           </div>
         ) : (
-          // --- CTA for Detailed Analysis --- (KEEP Current Style)
-          <div className='flex flex-col items-center justify-center bg-indigo-50 dark:bg-indigo-900/30 rounded-xl p-6 mt-4'>
-            <SparklesIcon className='w-8 h-8 text-indigo-600 dark:text-indigo-400 mb-3' />
-            <h4 className='text-lg font-semibold text-indigo-900 dark:text-indigo-200 mb-2'>
-              View Detailed Analysis
+          // --- CTA for Detailed Analysis / Membership Upsell ---
+          <div className='mt-4 flex flex-col items-center justify-center rounded-xl bg-indigo-50 p-6'>
+            <SparklesIcon className='mb-3 h-8 w-8 text-indigo-600' />
+            <h4 className='byg-title mb-2 text-lg font-semibold text-indigo-900'>
+              Unlock detailed analysis
             </h4>
-            <p className='text-sm text-indigo-700 dark:text-indigo-300 text-center mb-4'>
-              Get detailed insights including keywords, menu items, and recommended dishes.
+            <p className='mb-4 text-center text-sm text-indigo-700'>
+              Get deeper insights like keyword breakdowns, menu mentions, and recommended dishes with a membership plan. Additional special features are on the way.
             </p>
-            {isDetailedAnalysisLoading ? (
-              <div className='flex flex-col items-center'>
-                <div className='w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-2'></div>
-                <p className='text-sm text-indigo-600 dark:text-indigo-400'>Analyzing...</p>
-              </div>
-            ) : detailedAnalysisError ? (
-              <div className='text-center'>
-                <p className='text-sm text-red-600 dark:text-red-400 mb-2'>
-                  {detailedAnalysisError}
-                </p>
-                {onGetDetailedAnalysis && (
-                  <button
-                    onClick={onGetDetailedAnalysis}
-                    className='px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium'>
-                    Retry Analysis
-                  </button>
-                )}
-              </div>
-            ) : (
-              onGetDetailedAnalysis && (
-                <button
-                  onClick={onGetDetailedAnalysis}
-                  className='px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium'>
-                  Get Detailed Analysis
-                </button>
-              )
-            )}
+            <button
+              onClick={() => router.push("/pricing")}
+              className='byg-btn-primary'>
+              View membership options
+            </button>
           </div>
         )}
       </div>
 
-      {/* Footer Section - Reverted padding and background */}
-      <div className='p-4 sm:p-6 bg-gray-100 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 mt-auto'>
-        {!isWishlistView && (
-          <div className='flex flex-col sm:flex-row gap-3 justify-center mb-4'>
-            <button
-              onClick={handleWishlistClick}
-              disabled={isLoading}
-              className={`flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-900 w-full sm:w-auto ${
-                isLoading
-                  ? "opacity-50 cursor-wait bg-gray-200 dark:bg-gray-700 text-gray-500"
-                  : updateSuccess
-                    ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"
-                    : showUpdateState // Condition for update style
-                      ? "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-900/50 focus:ring-indigo-500"
-                      : showSavedState // Condition for saved style
-                        ? "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600"
-                        : showAddState // Condition for add style (default)
-                          ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/50 focus:ring-red-500"
-                          : "bg-gray-200 dark:bg-gray-700 text-gray-500" // Fallback style
-              }`}>
-              {/* Icon Logic */}
-              {isLoading ? (
-                <svg
-                  className='animate-spin -ml-1 mr-2 h-5 w-5'
-                  xmlns='http://www.w3.org/2000/svg'
-                  fill='none'
-                  viewBox='0 0 24 24'>
-                  <circle
-                    className='opacity-25'
-                    cx='12'
-                    cy='12'
-                    r='10'
-                    stroke='currentColor'
-                    strokeWidth='4'></circle>
-                  <path
-                    className='opacity-75'
-                    fill='currentColor'
-                    d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'></path>
-                </svg>
-              ) : updateSuccess ? (
-                <CheckCircleIcon className='w-5 h-5' /> // Keep check for success
-              ) : showUpdateState ? (
-                <ArrowPathIcon className='w-5 h-5' /> // Update icon
-              ) : isBookmarked ? (
-                <BookmarkIconSolid className='w-5 h-5' /> // Saved icon
-              ) : (
-                <BookmarkIconOutline className='w-5 h-5' /> // Add icon
-              )}
-
-              {/* Text Logic */}
-              <span>
-                {isLoading
-                  ? "Saving..."
-                  : updateSuccess
-                    ? "Updated!"
-                    : showUpdateState
-                      ? "Update Wishlist" // Update text
-                      : isBookmarked
-                        ? "Saved to Wishlist" // Saved text
-                        : "Add to Wishlist"}{" "}
-                {/* Add text */}
-              </span>
-            </button>
-
-            {/* Write Review Button */}
-            <button
-              onClick={handleReviewClick}
-              className='flex items-center justify-center gap-2 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-900/50 px-5 py-2.5 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 w-full sm:w-auto'>
-              <PencilSquareIcon className='w-5 h-5' />
-              <span>Write Review</span>
-            </button>
-          </div>
-        )}
-        {error && (
-          <div className='mt-3 p-3 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-md text-center text-sm'>
-            {error}
-          </div>
-        )}
-      </div>
-
-      {/* Review Modal */}
-      {isReviewModalOpen && selectedRestaurant && (
-        <ReviewForm
-          isOpen={isReviewModalOpen}
-          onClose={() => setIsReviewModalOpen(false)}
-          restaurantId={selectedRestaurant.placeId}
-          restaurantName={selectedRestaurant.name}
-        />
-      )}
+      {/* Footer actions removed for now (wishlist & write review) */}
     </div>
   );
 }

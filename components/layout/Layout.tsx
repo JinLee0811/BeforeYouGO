@@ -10,7 +10,7 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   return (
-    <div className='flex flex-col min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50 dark:from-gray-950 dark:via-gray-900 dark:to-slate-900 transition-colors'>
+    <div className='byg-page flex min-h-screen flex-col transition-colors'>
       <Head>
         <title>Before You Go</title>
         <meta name='description' content='AI-powered restaurant review analysis for travelers.' />
@@ -19,7 +19,7 @@ export default function Layout({ children }: LayoutProps) {
 
       <Navbar />
 
-      <main className='flex-grow container mx-auto px-4 py-12 md:py-16'>{children}</main>
+      <main className='container mx-auto flex-grow px-4 py-12 md:py-16'>{children}</main>
 
       <Footer />
     </div>

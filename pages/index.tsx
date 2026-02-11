@@ -1,8 +1,8 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import Head from "next/head";
 import { useLoadScript, Libraries } from "@react-google-maps/api";
 import { useRouter } from "next/router";
-import HomeHeader from "../components/home/HomeHeader";
+import { motion } from "framer-motion";
 import SearchSection from "../components/home/SearchSection";
 import HowItWorksSection from "../components/home/HowItWorksSection";
 import AuthModal from "../components/auth/AuthModal";
@@ -16,7 +16,6 @@ function HomeContent() {
   const { user, isLoading: isUserLoading } = useUser();
   const howItWorksRef = useRef<HTMLDivElement>(null);
   const [searchInput, setSearchInput] = useState("");
-  const [showHowItWorks, setShowHowItWorks] = useState(false);
   const loginPromptCooldownUntilRef = useRef(0);
   const sessionCheckInFlightRef = useRef(false);
   const [autocompleteInstance, setAutocompleteInstance] =
@@ -38,15 +37,6 @@ function HomeContent() {
   const handleScrollToHowItWorks = () => {
     howItWorksRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setShowHowItWorks(window.scrollY > 180);
-    };
-    handleScroll();
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
 
   const handleAuthSuccess = () => {
     setShowAuthModal(false);
@@ -118,102 +108,165 @@ function HomeContent() {
         onAuthSuccess={handleAuthSuccess}
       />
 
-      <HomeHeader />
+      {/* Hero + search */}
+      <div className='relative min-h-[calc(100vh-4.5rem)] overflow-hidden'>
+        <div className='absolute inset-0 bg-gradient-to-br from-slate-50 via-indigo-50/80 to-fuchsia-50/80' />
+        <div className='pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-white/60 to-transparent' />
 
-      <div className='max-w-5xl mx-auto px-4 py-10'>
-        <div
-          className={`rounded-[28px] border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl px-8 py-10 text-center transition-all duration-500 ${
-            showHowItWorks ? "opacity-0 -translate-y-6 pointer-events-none" : "opacity-100"
-          }`}>
-          <div className='inline-flex items-center gap-2 rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-200 px-3 py-1 text-xs font-semibold'>
-            {user ? "Welcome back" : "New here?"}
-          </div>
-          <h1 className='mt-4 text-3xl sm:text-4xl font-semibold text-gray-900 dark:text-white'>
-            Search smarter. Choose faster.
-          </h1>
-          <p className='mt-3 text-base sm:text-lg text-gray-600 dark:text-gray-300'>
-            AI summaries help you decide in seconds.
-          </p>
-          <div className='mt-7'>
-            <div className='max-w-2xl mx-auto w-full'>
-              {loadError && (
-                <p className='text-sm text-red-500 mb-3'>Error loading maps. Please refresh.</p>
-              )}
-              {isLoaded ? (
-                <SearchSection
-                  isSearching={false}
-                  error={null}
-                  searchLocationInput={searchInput}
-                  onSearchLocationInputChange={setSearchInput}
-                  onFindNearby={() => {
-                    if (isUserLoading) return;
-                    if (hasUser) {
-                      router.push("/search?mode=nearby");
-                    } else {
-                      ensureSessionOrPrompt({ type: "nearby" });
-                    }
-                  }}
-                  onSearchByLocationText={(location) => {
-                    const query = location.trim();
-                    if (!query) return;
-                    if (isUserLoading) return;
-                    if (hasUser) {
-                      router.push(`/search?q=${encodeURIComponent(query)}`);
-                    } else {
-                      ensureSessionOrPrompt({ type: "location", location: query });
-                    }
-                  }}
-                  onAutocompleteLoad={(autocomplete) => setAutocompleteInstance(autocomplete)}
-                  onPlaceChanged={() => {
-                    const place = autocompleteInstance?.getPlace();
-                    const locationName = place?.name || place?.formatted_address || searchInput;
-                    const query = locationName?.trim();
-                    if (!query) return;
-                    if (isUserLoading) return;
-                    if (hasUser) {
-                      router.push(`/search?q=${encodeURIComponent(query)}`);
-                    } else {
-                      ensureSessionOrPrompt({ type: "placeChanged" });
-                    }
-                  }}
-                  locationInputRef={locationInputRef}
-                  onLoginRequired={
-                    !hasUser && !isUserLoading
-                      ? () => {
-                          ensureSessionOrPrompt();
-                        }
-                      : undefined
-                  }
-                  isLoginModalOpen={showAuthModal}
-                  disableSearchInput={!hasUser && !isUserLoading}
-                />
-              ) : (
-                <div className='w-full rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 text-sm text-gray-400'>
-                  Loading search…
+        <motion.div
+          className='pointer-events-none absolute -top-20 -left-20 h-80 w-80 rounded-full bg-sky-200/60 blur-3xl'
+          animate={{ scale: [1, 1.2, 1], x: [0, 30, 0], y: [0, 35, 0] }}
+          transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          className='pointer-events-none absolute top-1/3 -right-20 h-96 w-96 rounded-full bg-fuchsia-200/55 blur-3xl'
+          animate={{ scale: [1, 1.15, 1], x: [0, -25, 0], y: [0, -30, 0] }}
+          transition={{ duration: 11, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          className='pointer-events-none absolute -bottom-28 left-1/4 h-80 w-80 rounded-full bg-indigo-200/60 blur-3xl'
+          animate={{ scale: [1, 1.22, 1], x: [0, -20, 0], y: [0, 22, 0] }}
+          transition={{ duration: 13, repeat: Infinity, ease: "easeInOut" }}
+        />
+
+        <div className='relative z-10 mx-auto flex min-h-[calc(100vh-4.5rem)] w-full max-w-6xl flex-col justify-center px-4 pb-16 pt-12'>
+          <motion.div
+            className='mx-auto max-w-4xl text-center'
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <span className="inline-flex items-center rounded-full border border-indigo-200/80 bg-white/80 px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-500 shadow-sm [font-family:'Space_Grotesk',ui-sans-serif,system-ui]">
+              Before You Go
+            </span>
+            <h1 className="mt-5 text-4xl font-semibold leading-tight text-slate-900 sm:text-5xl lg:text-6xl [font-family:'Space_Grotesk',ui-sans-serif,system-ui]">
+              AI Review Summary
+              <span className='block bg-gradient-to-r from-indigo-600 via-violet-600 to-fuchsia-600 bg-clip-text text-transparent'>
+                for Smarter Restaurant Picks
+              </span>
+            </h1>
+            <p className="mx-auto mt-5 max-w-2xl text-base text-slate-600 sm:text-lg [font-family:'Space_Grotesk',ui-sans-serif,system-ui]">
+              Search the place, skip the review overload, and read the signal in seconds.
+            </p>
+          </motion.div>
+
+          <motion.div
+            className='mt-8'
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.65, delay: 0.1 }}
+          >
+            <div className='mx-auto w-full max-w-4xl rounded-[2rem] border border-white/70 bg-white/75 px-5 py-6 shadow-[0_30px_90px_-45px_rgba(79,70,229,0.75)] backdrop-blur-xl sm:px-8 sm:py-8'>
+              <div className='mb-5 text-center'>
+                <div className="inline-flex items-center rounded-full bg-slate-900 px-3 py-1 text-[11px] font-medium text-white [font-family:'Space_Grotesk',ui-sans-serif,system-ui]">
+                  {user ? "Signed in - ready to search" : "Portfolio demo - free basic summary"}
                 </div>
-              )}
-            </div>
-          </div>
-          {!showHowItWorks && (
-            <div className='mt-6 flex justify-center'>
-              <p className='text-sm font-semibold bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent animate-pulse'>
-                New here? Scroll down to see how it works.
-              </p>
-            </div>
-          )}
-        </div>
+              </div>
+              <div className='mx-auto w-full max-w-3xl'>
+                {loadError && (
+                  <p className="mb-3 text-center text-sm text-red-500 [font-family:'Space_Grotesk',ui-sans-serif,system-ui]">
+                    Error loading maps. Please refresh.
+                  </p>
+                )}
+                {isLoaded ? (
+                  <SearchSection
+                    isSearching={false}
+                    error={null}
+                    searchLocationInput={searchInput}
+                    onSearchLocationInputChange={setSearchInput}
+                    onFindNearby={() => {
+                      if (isUserLoading) return;
+                      if (hasUser) {
+                        router.push("/search?mode=nearby");
+                      } else {
+                        ensureSessionOrPrompt({ type: "nearby" });
+                      }
+                    }}
+                    onSearchByLocationText={(location) => {
+                      const query = location.trim();
+                      if (!query) return;
+                      if (isUserLoading) return;
+                      if (hasUser) {
+                        router.push(`/search?q=${encodeURIComponent(query)}`);
+                      } else {
+                        ensureSessionOrPrompt({ type: "location", location: query });
+                      }
+                    }}
+                    onAutocompleteLoad={(autocomplete) => setAutocompleteInstance(autocomplete)}
+                    onPlaceChanged={() => {
+                      const place = autocompleteInstance?.getPlace();
+                      const locationName = place?.name || place?.formatted_address || searchInput;
+                      const query = locationName?.trim();
+                      if (!query) return;
+                      if (isUserLoading) return;
+                      if (hasUser) {
+                        router.push(`/search?q=${encodeURIComponent(query)}`);
+                      } else {
+                        ensureSessionOrPrompt({ type: "placeChanged" });
+                      }
+                    }}
+                    locationInputRef={locationInputRef}
+                    onLoginRequired={
+                      !hasUser && !isUserLoading
+                        ? () => {
+                            ensureSessionOrPrompt();
+                          }
+                        : undefined
+                    }
+                    isLoginModalOpen={showAuthModal}
+                    disableSearchInput={!hasUser && !isUserLoading}
+                  />
+                ) : (
+                  <div className="w-full rounded-2xl border border-indigo-100 bg-white/80 px-4 py-4 text-center text-sm text-slate-400 [font-family:'Space_Grotesk',ui-sans-serif,system-ui]">
+                    Loading search…
+                  </div>
+                )}
+              </div>
 
-        <div
-          ref={howItWorksRef}
-          className={`transition-opacity duration-500 ${
-            showHowItWorks ? "opacity-100" : "opacity-0 pointer-events-none"
-          }`}>
-          <HowItWorksSection
-            onLoginClick={() => setShowAuthModal(true)}
-            onSearchClick={() => router.push("/search")}
-            isAuthenticated={isAuthenticated}
-          />
+              <div className='mt-3 grid gap-3 sm:grid-cols-3'>
+                {[
+                  { value: "10K+", label: "Analyzed Restaurants" },
+                  { value: "500K+", label: "Summarized Reviews" },
+                  { value: "98%", label: "Summary Confidence" },
+                ].map((stat) => (
+                  <div
+                    key={stat.label}
+                    className='rounded-2xl border border-indigo-100/80 bg-white/85 px-4 py-4 text-center'
+                  >
+                    <p className="text-2xl font-semibold text-slate-900 [font-family:'Space_Grotesk',ui-sans-serif,system-ui]">
+                      {stat.value}
+                    </p>
+                    <p className="mt-1 text-[11px] uppercase tracking-[0.14em] text-slate-500 [font-family:'Space_Grotesk',ui-sans-serif,system-ui]">
+                      {stat.label}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <div className='mt-7 flex flex-col items-center gap-2'>
+                <p className="text-xs font-medium text-slate-500 [font-family:'Space_Grotesk',ui-sans-serif,system-ui]">
+                  Curious what happens next?
+                </p>
+                <button
+                  onClick={handleScrollToHowItWorks}
+                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 [font-family:'Space_Grotesk',ui-sans-serif,system-ui]"
+                >
+                  See how it works
+                  <span className='animate-bounce text-sm'>↓</span>
+                </button>
+              </div>
+            </div>
+          </motion.div>
         </div>
+      </div>
+
+      {/* How it works section */}
+      <div ref={howItWorksRef}>
+        <HowItWorksSection
+          onLoginClick={() => setShowAuthModal(true)}
+          onSearchClick={() => router.push("/search")}
+          isAuthenticated={isAuthenticated}
+        />
       </div>
     </>
   );

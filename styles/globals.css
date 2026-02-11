@@ -1,7 +1,49 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 body {
-  @apply antialiased font-sans text-gray-800;
+  @apply antialiased text-gray-800;
+  font-family: "Manrope", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+}
+
+@layer components {
+  .byg-page {
+    @apply bg-gradient-to-br from-slate-50 via-indigo-50/50 to-fuchsia-50/60;
+  }
+
+  .byg-panel {
+    @apply rounded-[1.6rem] border border-white/80 bg-white/80 backdrop-blur-xl shadow-[0_24px_80px_-45px_rgba(79,70,229,0.75)];
+  }
+
+  .byg-panel-soft {
+    @apply rounded-2xl border border-indigo-100/80 bg-white/90 shadow-[0_16px_50px_-35px_rgba(79,70,229,0.55)];
+  }
+
+  .byg-btn-primary {
+    @apply inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-indigo-600 to-fuchsia-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition hover:brightness-105;
+    font-family: "Space Grotesk", ui-sans-serif, system-ui;
+  }
+
+  .byg-btn-secondary {
+    @apply inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50;
+    font-family: "Space Grotesk", ui-sans-serif, system-ui;
+  }
+
+  .byg-input {
+    @apply w-full rounded-xl border border-indigo-100 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200;
+    font-family: "Space Grotesk", ui-sans-serif, system-ui;
+  }
+
+  .byg-chip {
+    @apply inline-flex items-center rounded-full border border-indigo-200 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-indigo-500;
+    font-family: "Space Grotesk", ui-sans-serif, system-ui;
+  }
+
+  .byg-title {
+    font-family: "Space Grotesk", ui-sans-serif, system-ui;
+  }
 }

@@ -1,9 +1,8 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { supabase } from "../../lib/supabaseClient";
 
-// 15일을 밀리초로 변환
+// 15 days in milliseconds
 const CACHE_DURATION = 15 * 24 * 60 * 60 * 1000;
-const ipUsageMap = new Map<string, number>();
 
 const getClientIp = (req: NextApiRequest) => {
   const forwarded = req.headers["x-forwarded-for"];
@@ -14,14 +13,6 @@ const getClientIp = (req: NextApiRequest) => {
     return forwarded[0];
   }
   return req.socket?.remoteAddress || "unknown";
-};
-
-const isIpRateLimited = (ip: string) => {
-  return ipUsageMap.has(ip);
-};
-
-const markIpUsed = (ip: string) => {
-  ipUsageMap.set(ip, Date.now());
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -38,13 +29,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { data: authData, error: authError } = await supabase.auth.getUser(token);
     if (authError || !authData?.user) {
       return res.status(401).json({ error: "Unauthorized" });
-    }
-
-    const clientIp = getClientIp(req);
-    if (isIpRateLimited(clientIp)) {
-      return res.status(429).json({
-        error: "Rate limit exceeded. Only one review summary per IP is allowed.",
-      });
     }
 
     const { reviews, placeId } = req.body;
@@ -69,7 +53,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const cacheAge = Date.now() - new Date(cachedSummary.created_at).getTime();
       if (cacheAge < CACHE_DURATION) {
         console.log(`Returning cached basic summary for ${placeId}`);
-        markIpUsed(clientIp);
         return res.status(200).json({
           success: true,
           data: cachedSummary,
@@ -141,7 +124,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
-    markIpUsed(clientIp);
     return res.status(200).json({
       success: true,
       data: summaryData,

@@ -114,7 +114,7 @@ export default function AnalysisResults({
       <div className='flex justify-center pt-4'>
         <button
           onClick={onNewSearch}
-          className='flex items-center gap-2 rounded-md bg-white dark:bg-gray-700 px-4 py-2 text-sm font-semibold text-gray-900 dark:text-gray-200 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors'>
+          className='flex items-center gap-2 rounded-full bg-gradient-to-r from-indigo-600 to-fuchsia-600 px-5 py-2 text-sm font-medium text-white shadow-md transition hover:brightness-105'>
           <MagnifyingGlassIcon className='h-5 w-5' />
           New Search
         </button>

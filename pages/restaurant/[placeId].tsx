@@ -147,22 +147,22 @@ export default function RestaurantDetail() {
         <title>{details.name} - Restaurant Details</title>
       </Head>
 
-      <div className='max-w-4xl mx-auto px-4 py-8'>
+      <div className='mx-auto max-w-4xl px-4 py-8'>
         {photoUrl ? (
           <img
             src={photoUrl}
             alt={details.name}
-            className='w-full h-64 object-cover rounded-lg mb-6 shadow-md'
+            className='mb-6 h-64 w-full rounded-2xl object-cover shadow-md'
           />
         ) : (
-          <div className='w-full h-64 bg-gray-200 flex items-center justify-center rounded-lg mb-6 shadow-md'>
+          <div className='mb-6 flex h-64 w-full items-center justify-center rounded-2xl bg-slate-100 shadow-md'>
             <PhotoIcon className='w-16 h-16 text-gray-400' />
           </div>
         )}
 
-        <div className='bg-white p-6 rounded-lg shadow-md mb-6'>
+        <div className='byg-panel-soft mb-6 p-6'>
           <div className='flex justify-between items-start mb-4'>
-            <h1 className='text-3xl font-bold text-gray-900'>{details.name}</h1>
+            <h1 className='byg-title text-3xl font-bold text-slate-900'>{details.name}</h1>
             {/* Ensure placeId exists before rendering BookmarkButton */}
             {details.place_id && (
               <BookmarkButton
@@ -178,16 +178,16 @@ export default function RestaurantDetail() {
               {details.rating ?? "N/A"} ({details.user_ratings_total ?? 0} reviews)
             </span>
           </div>
-          <div className='flex items-center text-gray-600'>
-            <MapPinIcon className='w-5 h-5 text-gray-500 mr-1' />
+          <div className='flex items-center text-slate-600'>
+            <MapPinIcon className='mr-1 h-5 w-5 text-slate-500' />
             <span>{details.formatted_address ?? "Address not available"}</span>
           </div>
         </div>
 
         {/* Review Analysis Section */}
-        <div className='bg-white p-6 rounded-lg shadow-md mb-6'>
-          <h2 className='text-2xl font-semibold mb-4'>AI Review Analysis</h2>
-          {isAnalyzing && <p className='text-center text-gray-600'>Analyzing reviews...</p>}
+        <div className='byg-panel-soft mb-6 p-6'>
+          <h2 className='byg-title mb-4 text-2xl font-semibold'>AI Review Analysis</h2>
+          {isAnalyzing && <p className='text-center text-slate-600'>Analyzing reviews...</p>}
           {/* Display analysis error specifically */}
           {!isAnalyzing && error && error.startsWith("Analysis Error:") && (
             <p className='text-center text-red-600'> {error}</p>
@@ -203,12 +203,12 @@ export default function RestaurantDetail() {
 
         {/* Review Form - Only show when showReviewForm is true */}
         {showReviewForm && details.place_id && (
-          <div className='bg-white p-6 rounded-lg shadow-md'>
+          <div className='byg-panel-soft p-6'>
             <div className='flex justify-between items-center mb-4'>
-              <h2 className='text-2xl font-semibold'>Leave Your Review</h2>
+              <h2 className='byg-title text-2xl font-semibold'>Leave Your Review</h2>
               <button
                 onClick={() => setShowReviewForm(false)}
-                className='text-gray-500 hover:text-gray-700'>
+                className='text-slate-500 transition hover:text-slate-700'>
                 Close
               </button>
             </div>

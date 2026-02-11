@@ -37,8 +37,20 @@ const SearchSection: React.FC<SearchSectionProps> = ({
 }) => {
   const shouldPromptLogin = onLoginRequired && !isLoginModalOpen && disableSearchInput;
   return (
-    <div className='bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 md:p-8 mb-12 max-w-3xl mx-auto'>
-      <div className='flex flex-col sm:flex-row gap-4 mb-4'>
+    <div className='relative overflow-hidden rounded-[2rem] border border-indigo-100/80 bg-white/90 p-5 shadow-[0_20px_60px_-35px_rgba(79,70,229,0.5)] backdrop-blur md:p-7'>
+      <div className='pointer-events-none absolute -top-20 -right-16 h-44 w-44 rounded-full bg-fuchsia-200/40 blur-3xl' />
+      <div className='pointer-events-none absolute -bottom-20 -left-16 h-44 w-44 rounded-full bg-sky-200/40 blur-3xl' />
+
+      <div className='relative z-10 mb-5 text-left'>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-indigo-500 [font-family:'Space_Grotesk',ui-sans-serif,system-ui]">
+          Start Search
+        </p>
+        <p className="mt-1 text-sm text-slate-600 [font-family:'Space_Grotesk',ui-sans-serif,system-ui]">
+          Find nearby restaurants or type a location to get an AI summary quickly.
+        </p>
+      </div>
+
+      <div className='relative z-10 flex flex-col gap-3.5 md:flex-row md:items-stretch'>
         <button
           onClick={() => {
             if (shouldPromptLogin) {
@@ -48,11 +60,11 @@ const SearchSection: React.FC<SearchSectionProps> = ({
             onFindNearby();
           }}
           disabled={isSearching}
-          className='flex-1 flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm whitespace-nowrap'>
+          className="inline-flex h-14 items-center justify-center whitespace-nowrap rounded-2xl bg-gradient-to-r from-indigo-600 to-fuchsia-600 px-6 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition-transform duration-150 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 [font-family:'Space_Grotesk',ui-sans-serif,system-ui] md:min-w-[230px] md:flex-none">
           <MapPinIcon className='w-5 h-5 mr-2' />
           {isSearching ? "Searching Near You..." : "Find Restaurants Near Me"}
         </button>
-        <div className='flex-1 relative'>
+        <div className='relative flex-1'>
           <Autocomplete
             onLoad={onAutocompleteLoad}
             onPlaceChanged={() => {
@@ -69,7 +81,7 @@ const SearchSection: React.FC<SearchSectionProps> = ({
             <input
               ref={locationInputRef}
               type='text'
-              className='w-full pl-4 pr-10 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400'
+              className="h-14 w-full rounded-2xl border border-indigo-100 bg-white/95 py-3 pl-4 pr-12 text-[15px] text-slate-900 shadow-inner shadow-indigo-100/40 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200 placeholder:text-slate-400 [font-family:'Space_Grotesk',ui-sans-serif,system-ui]"
               placeholder='Or enter a suburb or city'
               value={searchLocationInput}
               onChange={(e) => onSearchLocationInputChange(e.target.value)}
@@ -108,19 +120,19 @@ const SearchSection: React.FC<SearchSectionProps> = ({
               onSearchByLocationText(searchLocationInput);
             }}
             disabled={isSearching || !searchLocationInput.trim()}
-            className='absolute right-2 top-1/2 transform -translate-y-1/2 p-2 text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-50 disabled:cursor-not-allowed rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500'
+            className='absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-2 text-slate-400 transition hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-300 disabled:cursor-not-allowed disabled:opacity-50'
             aria-label='Search location'>
             <MagnifyingGlassIcon className='w-5 h-5' />
           </button>
         </div>
       </div>
       {isSearching && !error && (
-        <p className='text-sm text-center text-gray-600 dark:text-gray-400 pt-2'>
+        <p className="pt-3 text-center text-xs text-slate-500 [font-family:'Space_Grotesk',ui-sans-serif,system-ui]">
           Searching for top-rated restaurants...
         </p>
       )}
       {error && (
-        <div className='mt-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400 text-sm flex items-center justify-center gap-2'>
+        <div className="mt-4 flex items-center justify-center gap-2 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 [font-family:'Space_Grotesk',ui-sans-serif,system-ui]">
           <InformationCircleIcon className='w-5 h-5' />
           <span>{error}</span>
         </div>

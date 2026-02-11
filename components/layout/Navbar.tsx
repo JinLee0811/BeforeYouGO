@@ -1,17 +1,16 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/router";
 import { supabase } from "../../lib/supabaseClient";
 import {
   UserIcon,
   BookmarkIcon,
   ArrowRightOnRectangleIcon,
+  SparklesIcon,
 } from "@heroicons/react/24/outline";
 import AuthModal from "../auth/AuthModal";
 import NicknameSetupModal from "../auth/NicknameSetupModal";
 import { Session } from "@supabase/supabase-js";
-import ThemeToggle from "../common/ThemeToggle";
 
 export default function Navbar() {
   const router = useRouter();
@@ -68,51 +67,59 @@ export default function Navbar() {
 
   return (
     <nav className='sticky top-0 z-40'>
-      <div className='backdrop-blur-xl bg-white/70 dark:bg-gray-900/60 border-b border-white/40 dark:border-white/10 shadow-sm'>
-        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
-          <div className='flex justify-between h-16'>
-          <div className='flex'>
+      <div className='border-b border-white/70 bg-white/70 backdrop-blur-xl shadow-sm'>
+        <div className='mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8'>
+          <div className='flex items-center gap-3'>
             <Link href='/' className='flex items-center gap-2'>
-              <Image
-                src='/imageLogo.png'
-                alt='Before You Go Logo'
-                width={40}
-                height={40}
-                className='rounded-full ring-2 ring-indigo-200/60 dark:ring-indigo-400/40'
-              />
-              <span className='text-xl font-semibold text-gray-900 dark:text-white transition-colors'>
+              <span className='flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600'>
+                <SparklesIcon className='h-5 w-5 text-white' />
+              </span>
+              <span className='byg-title bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-xl font-bold text-transparent'>
                 Before You Go
               </span>
             </Link>
+            <div className='hidden items-center gap-2 sm:flex'>
+              <Link
+                href='/search'
+                className='rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-white hover:text-indigo-600'
+              >
+                Search
+              </Link>
+              <Link
+                href='/pricing'
+                className='rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-white hover:text-indigo-600'
+              >
+                Pricing
+              </Link>
+            </div>
           </div>
 
-          <div className='flex items-center space-x-3'>
-            <ThemeToggle />
+          <div className='flex items-center space-x-2.5'>
             {userId ? (
               <>
                 {userNickname && (
-                  <span className='text-sm font-medium text-gray-700 dark:text-gray-300 hidden sm:block transition-colors'>
+                  <span className='hidden rounded-full bg-white px-3 py-1 text-sm font-medium text-slate-600 sm:block'>
                     Hi, {userNickname}
                   </span>
                 )}
                 <Link
                   href='/my-page'
-                  className='flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-gray-800/60 rounded-lg transition-colors'>
-                  <BookmarkIcon className='w-5 h-5 mr-1.5' />
+                  className='inline-flex items-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50'
+                >
+                  <BookmarkIcon className='mr-1.5 h-5 w-5' />
                   My Page
                 </Link>
                 <button
                   onClick={handleSignOut}
-                  className='flex items-center px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 hover:bg-red-50/80 dark:hover:bg-red-900/30 rounded-lg transition-colors'>
-                  <ArrowRightOnRectangleIcon className='w-5 h-5 mr-1.5' />
+                  className='inline-flex items-center rounded-xl border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50'
+                >
+                  <ArrowRightOnRectangleIcon className='mr-1.5 h-5 w-5' />
                   Sign Out
                 </button>
               </>
             ) : (
-              <button
-                onClick={() => setShowAuthModal(true)}
-                className='flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors shadow-sm'>
-                <UserIcon className='w-5 h-5 mr-1.5' />
+              <button onClick={() => setShowAuthModal(true)} className='byg-btn-primary'>
+                <UserIcon className='mr-1.5 h-5 w-5' />
                 Sign In / Sign Up
               </button>
             )}
@@ -136,7 +143,6 @@ export default function Navbar() {
           userId={userId}
         />
       )}
-      </div>
     </nav>
   );
 }

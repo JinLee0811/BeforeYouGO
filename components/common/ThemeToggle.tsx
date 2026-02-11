@@ -26,12 +26,12 @@ export default function ThemeToggle() {
   return (
     <button
       onClick={toggleDarkMode}
-      className='p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors'
+      className='rounded-xl border border-slate-200 bg-white p-2 text-slate-600 transition hover:bg-slate-50'
       aria-label='Toggle dark mode'>
       {darkMode ? (
-        <SunIcon className='h-5 w-5 text-gray-600 dark:text-gray-300' />
+        <SunIcon className='h-5 w-5' />
       ) : (
-        <MoonIcon className='h-5 w-5 text-gray-600 dark:text-gray-300' />
+        <MoonIcon className='h-5 w-5' />
       )}
     </button>
   );

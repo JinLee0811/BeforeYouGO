@@ -15,11 +15,11 @@ const RestaurantResults: React.FC<RestaurantResultsProps> = ({
 
   return (
     <div className='mb-12'>
-      <div className='flex flex-col sm:flex-row items-center justify-between mb-6 gap-4'>
-        <h2 className='text-2xl font-semibold text-gray-900 dark:text-white'>
+      <div className='mb-6 flex flex-col items-center justify-between gap-4 sm:flex-row'>
+        <h2 className='byg-title text-2xl font-semibold text-slate-900'>
           Top Restaurants Found
         </h2>
-        <p className='text-gray-600 dark:text-gray-400 text-sm'>
+        <p className='text-sm text-slate-500'>
           Showing {restaurants.length} results (Rating 4.0+)
         </p>
       </div>

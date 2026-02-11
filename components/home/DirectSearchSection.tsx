@@ -24,12 +24,12 @@ const DirectSearchSection: React.FC<DirectSearchSectionProps> = ({
   const searchDisabled = isLoading || !isAuthenticated;
 
   return (
-    <div className='bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 dark:from-indigo-900/20 dark:via-purple-900/20 dark:to-pink-900/20 rounded-xl shadow-lg p-6 md:p-8 mb-12 text-center'>
-      <SparklesIcon className='w-10 h-10 text-indigo-600 dark:text-indigo-400 mx-auto mb-4' />
-      <h2 className='text-2xl font-bold text-gray-900 dark:text-white mb-3'>
+    <div className='byg-panel mb-12 p-6 text-center md:p-8'>
+      <SparklesIcon className='mx-auto mb-4 h-10 w-10 text-indigo-600' />
+      <h2 className='byg-title mb-3 text-2xl font-bold text-slate-900'>
         Already Know the Restaurant?
       </h2>
-      <p className='text-gray-600 dark:text-gray-300 mb-6 max-w-xl mx-auto'>
+      <p className='mx-auto mb-6 max-w-xl text-slate-600'>
         Get instant AI insights by searching its name or pasting its Google Maps URL.
       </p>
       <div className='max-w-lg mx-auto'>
@@ -37,21 +37,19 @@ const DirectSearchSection: React.FC<DirectSearchSectionProps> = ({
           {isAuthenticated ? (
             <RestaurantSearch onRestaurantSelect={onRestaurantSelect} />
           ) : (
-            <button
-              onClick={onAuthRequired}
-              className='w-full px-4 py-3 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 transition-colors'>
+            <button onClick={onAuthRequired} className='byg-btn-primary w-full'>
               Login to search restaurants
             </button>
           )}
         </div>
         <details className='text-sm' open={isAuthenticated}>
-          <summary className='cursor-pointer text-indigo-600 dark:text-indigo-400 hover:underline'>
+          <summary className='cursor-pointer text-indigo-600 hover:underline'>
             Or paste Google Maps URL
           </summary>
           <div className='mt-3 flex gap-2'>
             <input
               type='url'
-              className='flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400'
+              className='byg-input flex-1'
               placeholder='https://maps.app.goo.gl/...'
               value={directUrlInput}
               onChange={(e) => onDirectUrlInputChange(e.target.value)}
@@ -60,7 +58,7 @@ const DirectSearchSection: React.FC<DirectSearchSectionProps> = ({
             <button
               onClick={() => onSubmit(directUrlInput)}
               disabled={searchDisabled || !directUrlInput.trim()}
-              className='px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 text-sm whitespace-nowrap'>
+              className='byg-btn-primary whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-50'>
               Analyze URL
             </button>
           </div>

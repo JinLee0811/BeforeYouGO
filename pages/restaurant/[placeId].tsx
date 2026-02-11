@@ -213,13 +213,10 @@ export default function RestaurantDetail() {
               </button>
             </div>
             <ReviewForm
-              placeId={details.place_id}
+              isOpen={showReviewForm}
+              onClose={() => setShowReviewForm(false)}
+              restaurantId={details.place_id}
               restaurantName={details.name}
-              onAuthRequired={handleAuthRequired}
-              onReviewSubmitted={() => {
-                setShowReviewForm(false);
-                console.log("Review submitted!");
-              }}
             />
           </div>
         )}

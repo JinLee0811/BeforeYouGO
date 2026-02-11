@@ -26,9 +26,9 @@ export interface DetailedAnalysisResult extends AnalysisResult {
   is_pro_analysis: boolean;
 }
 
-export interface ApiResponse {
+export interface ApiResponse<T = BasicSummaryResult | DetailedAnalysisResult> {
   success: boolean;
-  data?: BasicSummaryResult | DetailedAnalysisResult; // Can return either type
+  data?: T;
   error?: string;
   fromCache?: boolean;
 }

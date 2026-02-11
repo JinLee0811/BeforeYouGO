@@ -16,7 +16,7 @@ import { useRouter } from "next/router";
 
 interface ReviewResultCardProps {
   result: AnalysisResult | BasicSummaryResult;
-  selectedRestaurant: {
+  selectedRestaurant?: {
     placeId: string;
     name: string;
     address?: string;
@@ -28,6 +28,8 @@ interface ReviewResultCardProps {
   onGetDetailedAnalysis?: () => void;
   isDetailedAnalysisLoading?: boolean;
   detailedAnalysisError?: string | null;
+  onWishlistClick?: () => void;
+  onReviewClick?: () => void;
 }
 
 // Helper function to generate star icons based on rating
@@ -134,7 +136,7 @@ const formatSentimentText = (sentiment: string | undefined | null) => {
 
 export default function ReviewResultCard({
   result,
-  selectedRestaurant,
+  selectedRestaurant = null,
   isWishlistView = false,
   isBasicSummary = false,
   onGetDetailedAnalysis,

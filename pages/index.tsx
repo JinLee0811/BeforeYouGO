@@ -10,6 +10,12 @@ import { useUser } from "@/hooks/useUser";
 import { supabase } from "@/lib/supabaseClient";
 
 const libraries: Libraries = ["places"];
+
+type PendingAction =
+  | { type: "nearby" }
+  | { type: "location"; location: string }
+  | { type: "placeChanged" };
+
 function HomeContent() {
   const router = useRouter();
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -21,12 +27,7 @@ function HomeContent() {
   const [autocompleteInstance, setAutocompleteInstance] =
     useState<google.maps.places.Autocomplete | null>(null);
   const locationInputRef = useRef<HTMLInputElement>(null);
-  const [pendingAction, setPendingAction] = useState<
-    | { type: "nearby" }
-    | { type: "location"; location: string }
-    | { type: "placeChanged" }
-    | null
-  >(null);
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
 
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
@@ -56,7 +57,7 @@ function HomeContent() {
   const hasUser = !!user;
   const isAuthenticated = hasUser && !isUserLoading;
 
-  const ensureSessionOrPrompt = async (action?: { type: "nearby" | "location" | "placeChanged"; location?: string }) => {
+  const ensureSessionOrPrompt = async (action?: PendingAction) => {
     if (sessionCheckInFlightRef.current) return;
     sessionCheckInFlightRef.current = true;
     try {

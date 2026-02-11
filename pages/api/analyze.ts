@@ -4,6 +4,7 @@ import axios from "axios";
 import { googleMaps } from "../../lib/externalUrls";
 import { supabase } from "../../lib/supabaseClient";
 import { Review } from "@/types";
+import { consumeAnalysisQuota } from "../../lib/apiUsageQuota";
 // Remove internal crawler imports and function
 // import puppeteer from "puppeteer-core";
 // import chromium from "@sparticuz/chromium-min";
@@ -96,6 +97,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { data: authData, error: authError } = await supabase.auth.getUser(token);
     if (authError || !authData?.user) {
       return res.status(401).json({ success: false, error: "Unauthorized" });
+    }
+    const quotaResult = await consumeAnalysisQuota(authData.user.id);
+    if (!quotaResult.success) {
+      if (quotaResult.error === "USAGE_LIMIT_EXCEEDED") {
+        return res.status(429).json({
+          success: false,
+          error: "Usage limit exceeded. Please upgrade your plan.",
+          code: "USAGE_LIMIT_EXCEEDED",
+        });
+      }
+      return res.status(500).json({ success: false, error: quotaResult.error });
     }
 
     if (!placeId) {

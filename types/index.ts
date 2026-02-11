@@ -31,6 +31,7 @@ export interface ApiResponse<T = BasicSummaryResult | DetailedAnalysisResult> {
   data?: T;
   error?: string;
   fromCache?: boolean;
+  code?: string;
 }
 
 // Bookmark type (ensure all fields match Supabase table)

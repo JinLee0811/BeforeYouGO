@@ -3,6 +3,7 @@ import axios from "axios";
 import { crawlReviews } from "../../lib/crawlReviews";
 import { googleMaps } from "../../lib/externalUrls";
 import { supabase } from "../../lib/supabaseClient";
+import { consumeAnalysisQuota } from "../../lib/apiUsageQuota";
 import { ApiResponse, Review } from "../../types";
 
 const RATE_LIMIT_WINDOW_MS = 5000;
@@ -81,6 +82,17 @@ export default async function handler(
     const { data: authData, error: authError } = await supabase.auth.getUser(token);
     if (authError || !authData?.user) {
       return res.status(401).json({ success: false, error: "Unauthorized" });
+    }
+    const quotaResult = await consumeAnalysisQuota(authData.user.id);
+    if (!quotaResult.success) {
+      if (quotaResult.error === "USAGE_LIMIT_EXCEEDED") {
+        return res.status(429).json({
+          success: false,
+          error: "Usage limit exceeded. Please upgrade your plan.",
+          code: "USAGE_LIMIT_EXCEEDED",
+        });
+      }
+      return res.status(500).json({ success: false, error: quotaResult.error });
     }
 
     const clientIp = getClientIp(req);

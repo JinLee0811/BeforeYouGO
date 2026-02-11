@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { AnalysisResult, BasicSummaryResult, Review, DetailedAnalysisResult } from "@/types";
+import { useRouter } from "next/router";
 
 // Define the extended type for selectedRestaurant state
 interface SelectedRestaurantState {
@@ -11,6 +12,7 @@ interface SelectedRestaurantState {
 }
 
 export const useReviewAnalysis = () => {
+  const router = useRouter();
   const [isAnalyzing, setIsLoading] = useState(false);
   const [result, setResult] = useState<BasicSummaryResult | null>(null);
   const [detailedResult, setDetailedResult] = useState<DetailedAnalysisResult | null>(null);
@@ -75,7 +77,11 @@ export const useReviewAnalysis = () => {
         body: JSON.stringify({ url, placeId }),
         signal: abortControllerRef.current!.signal,
       });
-      // During development/testing, don't redirect on rate limit.
+      if (crawlResponse.status === 429) {
+        router.push("/pricing");
+        setIsLoading(false);
+        return;
+      }
       const crawlData = await crawlResponse.json();
       if (!crawlData.success || !crawlData.data || crawlData.data.length === 0) {
         throw new Error(crawlData.error || "Failed to fetch reviews or no reviews found.");
@@ -90,7 +96,11 @@ export const useReviewAnalysis = () => {
         body: JSON.stringify(summaryPayload),
         signal: abortControllerRef.current.signal,
       });
-      // During development/testing, don't redirect on rate limit.
+      if (summaryResponse.status === 429) {
+        router.push("/pricing");
+        setIsLoading(false);
+        return;
+      }
       const summaryData = await summaryResponse.json();
       if (!summaryData.success) {
         throw new Error(summaryData.error || "Failed to generate basic summary.");
@@ -146,7 +156,11 @@ export const useReviewAnalysis = () => {
         body: JSON.stringify({ placeId }),
         signal: abortControllerRef.current.signal,
       });
-      // During development/testing, don't redirect on rate limit.
+      if (analyzeResponse.status === 429) {
+        router.push("/pricing");
+        setIsLoading(false);
+        return;
+      }
 
       const analyzeData = await analyzeResponse.json();
       if (!analyzeData.success) {

@@ -28,6 +28,8 @@ interface ReviewResultCardProps {
   onGetDetailedAnalysis?: () => void;
   isDetailedAnalysisLoading?: boolean;
   detailedAnalysisError?: string | null;
+  /** When false (e.g. analysis admin), hide pricing upsell under “Get detailed analysis”. */
+  showMembershipUpsell?: boolean;
   onWishlistClick?: () => void;
   onReviewClick?: () => void;
 }
@@ -142,6 +144,7 @@ export default function ReviewResultCard({
   onGetDetailedAnalysis,
   isDetailedAnalysisLoading,
   detailedAnalysisError,
+  showMembershipUpsell = true,
 }: ReviewResultCardProps) {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -364,20 +367,48 @@ export default function ReviewResultCard({
               )}
           </div>
         ) : (
-          // --- CTA for Detailed Analysis / Membership Upsell ---
+          // --- Detailed analysis CTA (runs /api/analyze) or membership upsell if no handler ---
           <div className='mt-4 flex flex-col items-center justify-center rounded-xl bg-indigo-50 p-6'>
             <SparklesIcon className='mb-3 h-8 w-8 text-indigo-600' />
             <h4 className='byg-title mb-2 text-lg font-semibold text-indigo-900'>
-              Unlock detailed analysis
+              {onGetDetailedAnalysis ? "Detailed analysis" : "Unlock detailed analysis"}
             </h4>
             <p className='mb-4 text-center text-sm text-indigo-700'>
-              Get deeper insights like keyword breakdowns, menu mentions, and recommended dishes with a membership plan. Additional special features are on the way.
+              {onGetDetailedAnalysis
+                ? "Run AI keyword, menu mention, and recommended-dish breakdown for this place."
+                : "Upgrade to see keyword breakdowns, dishes reviewers mention, and recommendations. Basic summaries stay free."}
             </p>
-            <button
-              onClick={() => router.push("/pricing")}
-              className='byg-btn-primary'>
-              View membership options
-            </button>
+            {onGetDetailedAnalysis ? (
+              <>
+                <button
+                  type='button'
+                  onClick={() => onGetDetailedAnalysis()}
+                  disabled={isDetailedAnalysisLoading}
+                  className='byg-btn-primary disabled:cursor-not-allowed disabled:opacity-60'>
+                  {isDetailedAnalysisLoading ? "Running detailed analysis…" : "Get detailed analysis"}
+                </button>
+                {detailedAnalysisError && (
+                  <p className='mt-3 text-center text-sm text-red-600' role='alert'>
+                    {detailedAnalysisError}
+                  </p>
+                )}
+                {showMembershipUpsell && (
+                  <button
+                    type='button'
+                    onClick={() => router.push("/pricing")}
+                    className='mt-4 text-sm text-indigo-600 underline hover:text-indigo-800'>
+                    View plans & pricing
+                  </button>
+                )}
+              </>
+            ) : (
+              <button
+                type='button'
+                onClick={() => router.push("/pricing")}
+                className='byg-btn-primary'>
+                View plans & pricing
+              </button>
+            )}
           </div>
         )}
       </div>

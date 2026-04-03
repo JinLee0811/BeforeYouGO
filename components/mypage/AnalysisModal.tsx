@@ -101,7 +101,7 @@ export default function AnalysisModal({
   );
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const { user } = useUser();
+  const { user, analysisAdmin, isLoading: isUserLoading } = useUser();
 
   useEffect(() => {
     setResult(initialResult);
@@ -126,16 +126,20 @@ export default function AnalysisModal({
   };
 
   const handleGetDetailedAnalysis = async () => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+    if (!analysisAdmin) {
+      void router.push("/pricing");
+      return;
+    }
     if (typeof window !== "undefined") {
       const demoUsed = localStorage.getItem("demo_free_analysis_used") === "true";
       if (demoUsed) {
         router.push("/pricing");
         return;
       }
-    }
-    if (!user) {
-      setShowAuthModal(true);
-      return;
     }
 
     setLoading(true);
@@ -453,27 +457,40 @@ export default function AnalysisModal({
                     View Detailed Analysis
                   </h4>
                   <p className='text-sm text-indigo-700 dark:text-indigo-300 text-center mb-4'>
-                    Get detailed insights including keywords, menu items, and recommended dishes.
+                    {analysisAdmin
+                      ? "Get detailed insights including keywords, menu items, and recommended dishes."
+                      : "Upgrade to see keywords, menu mentions, and recommended dishes for this saved place."}
                   </p>
-                  {loading ? (
-                    <div className='flex flex-col items-center'>
-                      <div className='w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-2'></div>
-                      <p className='text-sm text-indigo-600 dark:text-indigo-400'>Analyzing...</p>
-                    </div>
-                  ) : error ? (
-                    <div className='text-center'>
-                      <p className='text-sm text-red-600 dark:text-red-400 mb-2'>{error}</p>
+                  {isUserLoading ? (
+                    <p className='text-sm text-indigo-600 dark:text-indigo-400'>Loading…</p>
+                  ) : analysisAdmin ? (
+                    loading ? (
+                      <div className='flex flex-col items-center'>
+                        <div className='w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-2'></div>
+                        <p className='text-sm text-indigo-600 dark:text-indigo-400'>Analyzing...</p>
+                      </div>
+                    ) : error ? (
+                      <div className='text-center'>
+                        <p className='text-sm text-red-600 dark:text-red-400 mb-2'>{error}</p>
+                        <button
+                          onClick={handleGetDetailedAnalysis}
+                          className='px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium'>
+                          Retry Analysis
+                        </button>
+                      </div>
+                    ) : (
                       <button
                         onClick={handleGetDetailedAnalysis}
                         className='px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium'>
-                        Retry Analysis
+                        Get Detailed Analysis
                       </button>
-                    </div>
+                    )
                   ) : (
                     <button
-                      onClick={handleGetDetailedAnalysis}
+                      type='button'
+                      onClick={() => void router.push("/pricing")}
                       className='px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium'>
-                      Get Detailed Analysis
+                      View plans & pricing
                     </button>
                   )}
                 </div>

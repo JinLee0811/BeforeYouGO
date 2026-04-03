@@ -1,12 +1,14 @@
 import React, { useState } from "react";
-import { useRouter } from "next/router";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import ReviewResultCard from "../ReviewResultCard";
 import { AnalysisResult, BasicSummaryResult, DetailedAnalysisResult, Review } from "@/types";
 import { supabase } from "../../lib/supabaseClient";
- 
+import { parseApiJsonResponse } from "@/utils/parseApiJson";
+
 
 interface AnalysisResultsProps {
+  /** Hides pricing link under detailed-analysis CTA for analysis admins */
+  analysisAdmin?: boolean;
   result: AnalysisResult | BasicSummaryResult | null;
   selectedRestaurant: {
     placeId: string;
@@ -21,6 +23,7 @@ interface AnalysisResultsProps {
 }
 
 export default function AnalysisResults({
+  analysisAdmin = false,
   result,
   selectedRestaurant,
   onNewSearch,
@@ -30,13 +33,9 @@ export default function AnalysisResults({
   const [isDetailedLoading, setIsDetailedLoading] = useState(false);
   const [detailedError, setDetailedError] = useState<string | null>(null);
   const [detailedResult, setDetailedResult] = useState<DetailedAnalysisResult | null>(null);
-  const router = useRouter();
 
   const handleGetDetailedAnalysis = async () => {
-    if (!selectedRestaurant) {
-      console.warn("Selected restaurant is missing.");
-      return;
-    }
+    if (!selectedRestaurant) return;
 
     setIsDetailedLoading(true);
     setDetailedError(null);
@@ -50,7 +49,6 @@ export default function AnalysisResults({
         throw new Error("Login required to view detailed analysis.");
       }
 
-      console.log("Fetching detailed analysis...");
       const response = await fetch("/api/analyze", {
         method: "POST",
         headers: {
@@ -62,12 +60,18 @@ export default function AnalysisResults({
         }),
       });
 
-      const data = await response.json();
-      console.log("Detailed analysis raw response:", data);
-
+      const data = (await parseApiJsonResponse(response)) as {
+        success?: boolean;
+        data?: DetailedAnalysisResult;
+        error?: string;
+        sentiment?: string;
+        summary?: string;
+      };
       if (!response.ok) {
         if (response.status === 429) {
-          router.push("/pricing");
+          setDetailedError(
+            "Usage limit reached for detailed analysis today. View plans & pricing to continue."
+          );
           return;
         }
         throw new Error(data.error || `HTTP error! status: ${response.status}`);
@@ -76,12 +80,8 @@ export default function AnalysisResults({
       if (data && data.data) {
         setDetailedResult(data.data);
       } else {
-        console.warn(
-          "API response structure might have changed or returned unexpected format. Received:",
-          data
-        );
         if (data && data.sentiment && data.summary) {
-          setDetailedResult(data);
+          setDetailedResult(data as DetailedAnalysisResult);
         } else {
           throw new Error("Invalid data structure received from analysis API.");
         }
@@ -98,7 +98,12 @@ export default function AnalysisResults({
 
   if (!displayResult) return null;
 
-  const isBasicSummary = !detailedResult && !!result;
+  /** 기본 요약 행에도 빈 keyword 배열이 있어 `positive_keywords` 존재만으로는 Pro 여부를 판단하면 안 됨 */
+  const resultIsProRow =
+    result != null &&
+    "is_pro_analysis" in result &&
+    (result as { is_pro_analysis?: boolean }).is_pro_analysis === true;
+  const isBasicSummary = !detailedResult && !!result && !resultIsProRow;
 
   return (
     <div ref={reviewResultRef} className='mt-8 space-y-6 w-full max-w-4xl mx-auto'>
@@ -106,9 +111,10 @@ export default function AnalysisResults({
         result={displayResult}
         selectedRestaurant={selectedRestaurant}
         isBasicSummary={isBasicSummary}
-        onGetDetailedAnalysis={handleGetDetailedAnalysis}
-        isDetailedAnalysisLoading={isDetailedLoading}
-        detailedAnalysisError={detailedError}
+        onGetDetailedAnalysis={analysisAdmin ? handleGetDetailedAnalysis : undefined}
+        isDetailedAnalysisLoading={analysisAdmin ? isDetailedLoading : false}
+        detailedAnalysisError={analysisAdmin ? detailedError : null}
+        showMembershipUpsell
       />
 
       <div className='flex justify-center pt-4'>

@@ -1,6 +1,4 @@
 export const googleMaps = {
-  jsBaseUrl:
-    process.env.NEXT_PUBLIC_GOOGLE_MAPS_JS_URL || "https://maps.googleapis.com/maps/api/js",
   placesDetailsUrl:
     process.env.GOOGLE_MAPS_PLACES_DETAILS_URL ||
     "https://maps.googleapis.com/maps/api/place/details/json",

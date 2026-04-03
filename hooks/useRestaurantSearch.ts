@@ -27,7 +27,6 @@ export const useRestaurantSearch = (isLoaded: boolean) => {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const coords = { lat: position.coords.latitude, lng: position.coords.longitude };
-          console.log("Current location:", coords);
           setSearchQuery(coords);
           fetchRestaurants(coords);
         },
@@ -114,11 +113,7 @@ export const useRestaurantSearch = (isLoaded: boolean) => {
         language: "en",
       };
 
-      console.log("Search request:", request);
-
       service.nearbySearch(request, async (results, status) => {
-        console.log("Places API response:", status, results);
-
         if (status === google.maps.places.PlacesServiceStatus.OK && results) {
           const getPlaceDetails = (placeId: string): Promise<boolean> => {
             return new Promise((resolve) => {
@@ -145,12 +140,6 @@ export const useRestaurantSearch = (isLoaded: boolean) => {
             filteredPlaces.length > 0
               ? filteredPlaces
               : results.filter((place) => place.place_id);
-          if (filteredPlaces.length === 0 && basePlaces.length > 0) {
-            console.warn(
-              "No 4.0+ rated places found. Falling back to all results with place_id."
-            );
-          }
-
           const restaurantPromises = basePlaces.map(async (place) => {
             let distance = 0;
             try {

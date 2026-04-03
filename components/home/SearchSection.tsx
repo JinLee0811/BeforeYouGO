@@ -15,7 +15,7 @@ interface SearchSectionProps {
   onSearchByLocationText: (location: string) => void;
   onAutocompleteLoad: (autocomplete: google.maps.places.Autocomplete) => void;
   onPlaceChanged: () => void;
-  locationInputRef: React.RefObject<HTMLInputElement>;
+  locationInputRef: React.Ref<HTMLInputElement>;
   onLoginRequired?: () => void;
   isLoginModalOpen?: boolean;
   disableSearchInput?: boolean;

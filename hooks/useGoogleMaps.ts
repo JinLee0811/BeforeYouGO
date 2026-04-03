@@ -12,16 +12,16 @@ export function useGoogleMaps() {
   useEffect(() => {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
     if (!apiKey) {
-      setApiKeyError("Google Maps API 키가 설정되지 않았습니다.");
-      console.error("Google Maps API 키가 없습니다. .env.local 파일을 확인해주세요.");
+      setApiKeyError("Google Maps API key is not configured.");
+      console.error("Missing Google Maps API key. Check .env.local.");
       return;
     }
 
     // 개발 환경에서만 API 키 형식 검증
     if (process.env.NODE_ENV === "development") {
       if (!apiKey.match(/^[A-Za-z0-9_-]{39}$/)) {
-        setApiKeyError("유효하지 않은 API 키 형식입니다.");
-        console.error("Google Maps API 키 형식이 올바르지 않습니다.");
+        setApiKeyError("Invalid Google Maps API key format.");
+        console.error("Google Maps API key format looks invalid.");
         return;
       }
     }

@@ -131,3 +131,11 @@ export default function Pricing() {
     </div>
   );
 }
+
+// 정적 페이지 생성 과정에서 Router 컨텍스트가 없어 오류가 발생하므로,
+// 이 페이지는 항상 요청 시 서버 사이드 렌더링으로 처리되도록 강제한다.
+export async function getServerSideProps() {
+  return {
+    props: {},
+  };
+}

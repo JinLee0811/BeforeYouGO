@@ -2,34 +2,9 @@ import "../styles/globals.css";
 import type { AppProps } from "next/app";
 import { useEffect } from "react";
 import Layout from "../components/layout/Layout";
-import { googleMaps } from "../lib/externalUrls";
-
-declare global {
-  interface Window {
-    initMap: () => void;
-  }
-}
 
 function MyApp({ Component, pageProps }: AppProps) {
   useEffect(() => {
-    const loadGoogleMapsScript = () => {
-      const script = document.createElement("script");
-      const libraries =
-        process.env.NEXT_PUBLIC_GOOGLE_MAPS_LIBRARIES || "places,geometry";
-      script.src = `${googleMaps.jsBaseUrl}?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=${libraries}&loading=async`;
-      script.async = true;
-      script.defer = true;
-      document.head.appendChild(script);
-    };
-
-    if (
-      typeof window !== "undefined" &&
-      !document.querySelector('script[src*="maps.googleapis.com"]')
-    ) {
-      loadGoogleMapsScript();
-    }
-
-    // Check system preference on initial load
     if (typeof window !== "undefined") {
       const isDark =
         localStorage.getItem("theme") === "dark" ||

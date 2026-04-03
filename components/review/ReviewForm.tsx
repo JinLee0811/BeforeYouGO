@@ -141,8 +141,6 @@ export default function ReviewForm({
             recommended_dishes: recommendedDishes,
           };
 
-          console.log("Submitting review:", reviewData);
-
           const { error: submitError } = await supabase.from("reviews").insert(reviewData);
 
           if (submitError) {
@@ -150,7 +148,6 @@ export default function ReviewForm({
             throw new Error(submitError.message || "Failed to submit review.");
           }
 
-          console.log("Review submitted successfully!");
           handleClose();
         }
       );

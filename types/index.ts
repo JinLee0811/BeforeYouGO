@@ -31,6 +31,7 @@ export interface ApiResponse<T = BasicSummaryResult | DetailedAnalysisResult> {
   data?: T;
   error?: string;
   fromCache?: boolean;
+  /** USAGE_LIMIT_EXCEEDED, QUOTA_READ_FAILED, QUOTA_UPDATE_FAILED 등 */
   code?: string;
 }
 

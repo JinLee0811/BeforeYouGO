@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabaseClient";
 export function useUser() {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [analysisAdmin, setAnalysisAdmin] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -48,5 +49,40 @@ export function useUser() {
     };
   }, []);
 
-  return { user, isLoading };
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadAdmin = async () => {
+      if (!user) {
+        setAnalysisAdmin(false);
+        return;
+      }
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) {
+        setAnalysisAdmin(false);
+        return;
+      }
+      try {
+        const r = await fetch("/api/me/analysis-admin", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const j = (await r.json()) as { analysisAdmin?: boolean };
+        if (!cancelled) {
+          setAnalysisAdmin(j.analysisAdmin === true);
+        }
+      } catch {
+        if (!cancelled) setAnalysisAdmin(false);
+      }
+    };
+
+    void loadAdmin();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
+  return { user, isLoading, analysisAdmin };
 }

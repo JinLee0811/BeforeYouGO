@@ -1,6 +1,5 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState } from "react";
 import Head from "next/head";
-import { ChartBarIcon } from "@heroicons/react/24/outline";
 import { useLoadScript, Libraries } from "@react-google-maps/api";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/router";
@@ -10,25 +9,27 @@ import RestaurantResults from "../components/home/RestaurantResults";
 import DirectSearchSection from "../components/home/DirectSearchSection";
 import AnalysisResults from "../components/home/AnalysisResults";
 import AuthModal from "../components/auth/AuthModal";
+import { SearchAnalyzingModal } from "../components/search/SearchAnalyzingModal";
+import { SearchSourceTabs, type SearchSourceTab } from "../components/search/SearchSourceTabs";
+import { searchFadeIn, searchFadeInUp } from "../components/search/searchMotion";
 import { useRestaurantSearch } from "../hooks/useRestaurantSearch";
 import { useReviewAnalysis } from "../hooks/useReviewAnalysis";
 import { useUser } from "@/hooks/useUser";
-import { supabase } from "@/lib/supabaseClient";
+import { useSearchPageRouterEffects } from "@/hooks/useSearchPageRouterEffects";
+import { useSearchRestaurantSelection } from "@/hooks/useSearchRestaurantSelection";
+import { useAnalysisQuota } from "@/hooks/useAnalysisQuota";
+import {
+  isAnalysisQuotaNormal,
+  isAnalysisQuotaUnavailable,
+  shouldShowFreeTierQuotaBanners,
+} from "@/lib/analysisQuotaUi";
+import type { SearchPendingAction } from "@/types/searchPage";
 
 const libraries: Libraries = ["places"];
 
-const fadeInUp = {
-  initial: { opacity: 0, y: 20 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -20 },
-};
-
-const fadeIn = {
-  initial: { opacity: 0 },
-  animate: { opacity: 1 },
-  exit: { opacity: 0 },
-};
-
+/**
+ * 검색 페이지 본문: Maps 로드, 훅 연결, 라우터·모달·결과 UI 조합
+ */
 function SearchContent() {
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
@@ -39,18 +40,12 @@ function SearchContent() {
   const router = useRouter();
   const topRef = useRef<HTMLDivElement>(null);
   const [directUrlInput, setDirectUrlInput] = useState("");
-  const [activeTab, setActiveTab] = useState<"search" | "direct">("search");
+  const [activeTab, setActiveTab] = useState<SearchSourceTab>("search");
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const hasTriggeredNearbyRef = useRef(false);
-  const lastQueryRef = useRef<string | null>(null);
-  const [pendingAction, setPendingAction] = useState<
-    | { type: "nearby" }
-    | { type: "location"; location: string }
-    | { type: "placeChanged" }
-    | { type: "select"; placeId: string; name: string; url?: string; address?: string }
-    | null
-  >(null);
-  const { user, isLoading: isUserLoading } = useUser();
+  const [pendingAction, setPendingAction] = useState<SearchPendingAction | null>(null);
+  const { user, isLoading: isUserLoading, analysisAdmin } = useUser();
+  const { quota: quotaInfo } = useAnalysisQuota(user, analysisAdmin, isUserLoading);
+  const showQuotaBanners = shouldShowFreeTierQuotaBanners(user, isUserLoading, analysisAdmin, quotaInfo);
 
   const {
     isSearching,
@@ -70,6 +65,7 @@ function SearchContent() {
     isAnalyzing,
     result,
     detailedResult,
+    error: analysisFlowError,
     reviews,
     selectedRestaurant,
     reviewResultRef,
@@ -79,168 +75,40 @@ function SearchContent() {
     cancelAnalysis,
   } = useReviewAnalysis();
 
-  useEffect(() => {
-    if (!isLoaded || !router.isReady) return;
-
-    const { placeId, analyze } = router.query;
-
-    if (
-      placeId &&
-      typeof placeId === "string" &&
-      analyze === "true" &&
-      user &&
-      !isAnalyzing &&
-      !result &&
-      !detailedResult
-    ) {
-      handleGetDetailedAnalysisFromPlaceId(placeId);
-
-      const currentPath = router.pathname;
-      const queryWithoutAnalyze = { ...router.query };
-      delete queryWithoutAnalyze.analyze;
-      router.replace({ pathname: currentPath, query: queryWithoutAnalyze }, undefined, {
-        shallow: true,
-      });
-    }
-  }, [
+  useSearchPageRouterEffects({
     isLoaded,
-    router.isReady,
-    router.query,
+    router,
+    user,
+    isUserLoading,
     isAnalyzing,
     result,
     detailedResult,
-    user,
+    analysisAdmin,
+    handleSubmit,
     handleGetDetailedAnalysisFromPlaceId,
-    router,
-  ]);
-
-  useEffect(() => {
-    if (!isLoaded || !router.isReady) return;
-    if (isUserLoading) return;
-    const queryText = typeof router.query.q === "string" ? router.query.q.trim() : "";
-    if (!queryText) return;
-    if (lastQueryRef.current === queryText) return;
-    lastQueryRef.current = queryText;
-    if (!user) {
-      setPendingAction({ type: "location", location: queryText });
-      setShowAuthModal(true);
-      return;
-    }
-    setSearchLocationInput(queryText);
-    searchByLocationText(queryText);
-  }, [
-    isLoaded,
-    router.isReady,
-    router.query.q,
-    user,
-    isUserLoading,
+    findNearby,
     searchByLocationText,
     setSearchLocationInput,
-  ]);
+    setPendingAction,
+    setShowAuthModal,
+  });
 
-  useEffect(() => {
-    if (!isLoaded || !router.isReady) return;
-    if (isUserLoading) return;
-    if (router.query.mode !== "nearby") return;
-    if (hasTriggeredNearbyRef.current) return;
-    if (!user) {
-      setPendingAction({ type: "nearby" });
-      setShowAuthModal(true);
-      return;
-    }
-    hasTriggeredNearbyRef.current = true;
-    findNearby();
-  }, [isLoaded, router.isReady, router.query.mode, user, isUserLoading, findNearby]);
-
-  useEffect(() => {
-    if (router.query.mode !== "nearby") {
-      hasTriggeredNearbyRef.current = false;
-    }
-  }, [router.query.mode]);
-
-  // Demo lock is disabled for development/testing.
-  const isDemoLocked = () => false;
-
-  const performSelectRestaurantForBasicAnalysis = async (
-    placeId: string,
-    name: string,
-    url?: string,
-    address?: string
-  ) => {
-    let finalAddress = address;
-    let finalPhotos: string[] = [];
-
-    if (placeId) {
-      try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        const accessToken = session?.access_token;
-        const response = await fetch(`/api/placedetails?placeId=${placeId}`, {
-          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
-        });
-        if (response.status === 401) {
-          setPendingAction({ type: "select", placeId, name, url, address });
-          setShowAuthModal(true);
-          return;
-        }
-        if (response.status === 429) {
-          console.warn("Place details rate limited.");
-          return;
-        }
-        const detailsData = await response.json();
-
-        if (detailsData.success && detailsData.data) {
-          finalAddress = detailsData.data.address || finalAddress;
-          finalPhotos = detailsData.data.photos || [];
-        }
-      } catch (error) {
-        console.error(`[Frontend] Error calling /api/placedetails for ${placeId}:`, error);
-      }
-    }
-
-    setSelectedRestaurant({ placeId, name, address: finalAddress, photos: finalPhotos });
-
-    if (url) {
-      handleSubmit(url, placeId);
-    } else if (placeId) {
-      handleSubmit(undefined, placeId);
-    }
-  };
-
-  const handleSelectRestaurantForBasicAnalysis = async (
-    placeId: string,
-    name: string,
-    url?: string,
-    address?: string
-  ) => {
-    if (isDemoLocked()) {
-      router.push("/pricing");
-      return;
-    }
-    if (!user) {
-      setPendingAction({ type: "select", placeId, name, url, address });
-      setShowAuthModal(true);
-      return;
-    }
-    await performSelectRestaurantForBasicAnalysis(placeId, name, url, address);
-  };
+  const { performSelectRestaurantForBasicAnalysis, handleSelectRestaurantForBasicAnalysis } =
+    useSearchRestaurantSelection({
+      user,
+      setPendingAction,
+      setShowAuthModal,
+      setSelectedRestaurant,
+      handleSubmit,
+    });
 
   const handleNewSearch = () => {
-    if (isDemoLocked()) {
-      router.push("/pricing");
-      return;
-    }
     setSelectedRestaurant(null);
-    router.replace("/search", undefined, { shallow: true });
+    void router.replace("/search", undefined, { shallow: true });
     topRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   const handleFindNearby = () => {
-    if (isDemoLocked()) {
-      router.push("/pricing");
-      return;
-    }
     if (!user) {
       setPendingAction({ type: "nearby" });
       setShowAuthModal(true);
@@ -250,10 +118,6 @@ function SearchContent() {
   };
 
   const handleSearchByLocationText = (location: string) => {
-    if (isDemoLocked()) {
-      router.push("/pricing");
-      return;
-    }
     if (!user) {
       setPendingAction({ type: "location", location });
       setShowAuthModal(true);
@@ -263,10 +127,6 @@ function SearchContent() {
   };
 
   const handlePlaceChanged = () => {
-    if (isDemoLocked()) {
-      router.push("/pricing");
-      return;
-    }
     if (!user) {
       setPendingAction({ type: "placeChanged" });
       setShowAuthModal(true);
@@ -275,6 +135,7 @@ function SearchContent() {
     onPlaceChanged();
   };
 
+  /** 로그인 성공 후 보류 중이던 액션 재개 */
   const handleAuthSuccess = async () => {
     setShowAuthModal(false);
     if (!pendingAction) return;
@@ -302,11 +163,11 @@ function SearchContent() {
 
   if (loadError) {
     return (
-      <div className='text-center py-12 text-red-600'>Error loading maps: {loadError.message}</div>
+      <div className='py-12 text-center text-red-600'>Error loading maps: {loadError.message}</div>
     );
   }
   if (!isLoaded) {
-    return <div className='text-center py-12'>Loading map services...</div>;
+    return <div className='py-12 text-center'>Loading map services...</div>;
   }
 
   const displayResultData = detailedResult || result;
@@ -315,10 +176,7 @@ function SearchContent() {
     <>
       <Head>
         <title>Search | Before You Go</title>
-        <meta
-          name='description'
-          content='Search restaurants and generate AI summaries in seconds.'
-        />
+        <meta name='description' content='Search restaurants and generate AI summaries in seconds.' />
       </Head>
 
       <AuthModal
@@ -330,88 +188,66 @@ function SearchContent() {
         onAuthSuccess={handleAuthSuccess}
       />
 
-      <AnimatePresence>
-        {isAnalyzing && (
-          <motion.div
-            key='loading-modal'
-            initial='initial'
-            animate='animate'
-            exit='exit'
-            variants={fadeIn}
-            transition={{ duration: 0.3 }}
-            className='fixed inset-0 z-50 flex items-center justify-center bg-black/55 backdrop-blur-sm'>
-            <div className='byg-panel mx-4 w-full max-w-md p-8 text-center'>
-              <ChartBarIcon className='mx-auto mb-4 h-12 w-12 animate-pulse text-indigo-600' />
-              <h3 className='byg-title mb-2 text-xl font-semibold text-slate-900'>
-                Analyzing Reviews
-              </h3>
-              <p className='mb-4 text-slate-600'>
-                {selectedRestaurant ? (
-                  <>
-                    Our AI is reading reviews for{" "}
-                    <span className='font-medium'>{selectedRestaurant.name}</span>...
-                  </>
-                ) : (
-                  "Please wait while we fetch the details and analyze..."
-                )}
-              </p>
-              <div className='mx-auto mb-4 h-16 w-16 animate-spin rounded-full border-4 border-indigo-100 border-t-indigo-600'></div>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={cancelAnalysis}
-                className='rounded-xl bg-red-500 px-4 py-2 text-white transition-colors duration-200 hover:bg-red-600'>
-                Cancel Analysis
-              </motion.button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <SearchAnalyzingModal
+        open={isAnalyzing}
+        selectedRestaurant={selectedRestaurant}
+        onCancel={cancelAnalysis}
+      />
 
       <div ref={topRef}>
         <HomeHeader />
 
         <div className='mx-auto max-w-4xl px-4 py-8'>
-          <div className='mb-8 flex justify-center'>
-            <div className='relative flex space-x-1 rounded-2xl border border-indigo-100 bg-white/90 p-1.5 shadow-sm'>
-              <motion.button
-                whileHover={{ scale: 1.03, y: -1 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setActiveTab("search")}
-                className={`relative rounded-xl px-6 py-2.5 text-sm font-medium transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
-                  activeTab === "search"
-                    ? "text-indigo-600"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}>
-                {activeTab === "search" && (
-                  <motion.span
-                    layoutId='activeTabIndicator'
-                    className='absolute inset-0 z-0 rounded-xl bg-indigo-50 shadow'
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                  />
-                )}
-                <span className='relative z-10'>Search by Location</span>
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.03, y: -1 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setActiveTab("direct")}
-                className={`relative rounded-xl px-6 py-2.5 text-sm font-medium transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
-                  activeTab === "direct"
-                    ? "text-indigo-600"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}>
-                {activeTab === "direct" && (
-                  <motion.span
-                    layoutId='activeTabIndicator'
-                    className='absolute inset-0 z-0 rounded-xl bg-indigo-50 shadow'
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                  />
-                )}
-                <span className='relative z-10'>Direct Search</span>
-              </motion.button>
+          {showQuotaBanners && isAnalysisQuotaUnavailable(quotaInfo) && (
+              <div
+                className='mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950'
+                role='status'>
+                <p className='font-semibold'>We couldn&apos;t load your daily usage.</p>
+                <p className='mt-1'>
+                  You may still try an analysis. If it doesn&apos;t work, wait a moment and refresh, or sign out and back
+                  in. If this keeps happening, contact support.
+                </p>
+              </div>
+            )}
+
+          {showQuotaBanners && isAnalysisQuotaNormal(quotaInfo) && quotaInfo.remaining === 0 && (
+              <div
+                className='mb-6 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-950'
+                role='status'>
+                <p className='font-semibold'>You have used all free analyses for today.</p>
+                <p className='mt-1'>
+                  You used {quotaInfo.used} of {quotaInfo.limit} today. Your allowance resets at the start of the next
+                  day. Upgrade on the pricing page for more.
+                </p>
+                <a
+                  href='/pricing'
+                  className='mt-2 inline-block font-medium text-indigo-700 underline hover:text-indigo-900'>
+                  View plans & pricing
+                </a>
+              </div>
+            )}
+
+          {showQuotaBanners && isAnalysisQuotaNormal(quotaInfo) && quotaInfo.remaining > 0 && (
+              <div
+                className='mb-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700'
+                role='status'>
+                Free analyses today: <span className='font-semibold'>{quotaInfo.remaining}</span> left · {quotaInfo.used}
+                /{quotaInfo.limit} used
+              </div>
+            )}
+
+          {analysisFlowError && (
+            <div
+              className='mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950'
+              role='alert'>
+              <p className='mb-2'>{analysisFlowError}</p>
+              <a href='/pricing' className='font-medium text-indigo-700 underline hover:text-indigo-900'>
+                View plans & pricing
+              </a>
             </div>
-          </div>
+          )}
+
+          <SearchSourceTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
           <div className='mt-8'>
             <AnimatePresence mode='wait'>
@@ -420,7 +256,7 @@ function SearchContent() {
                 initial='initial'
                 animate='animate'
                 exit='exit'
-                variants={fadeIn}
+                variants={searchFadeIn}
                 transition={{ duration: 0.3 }}>
                 {activeTab === "search" ? (
                   <SearchSection
@@ -458,7 +294,7 @@ function SearchContent() {
               initial='initial'
               animate='animate'
               exit='exit'
-              variants={fadeInUp}
+              variants={searchFadeInUp}
               transition={{ duration: 0.5 }}
               className='mt-8'>
               <RestaurantResults
@@ -477,9 +313,10 @@ function SearchContent() {
               initial='initial'
               animate='animate'
               exit='exit'
-              variants={fadeInUp}
+              variants={searchFadeInUp}
               transition={{ duration: 0.5 }}>
               <AnalysisResults
+                analysisAdmin={analysisAdmin}
                 result={displayResultData}
                 selectedRestaurant={selectedRestaurant}
                 onNewSearch={handleNewSearch}
@@ -494,6 +331,7 @@ function SearchContent() {
   );
 }
 
+/** Next 페이지 엔트리 — SearchContent로 Maps 훅 스코프 유지 */
 export default function SearchPage() {
   return <SearchContent />;
 }

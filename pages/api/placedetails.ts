@@ -78,13 +78,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const flightPromise = (async () => {
       markIpUsed(clientIp);
-      console.log(`[API /api/placedetails] Fetching details for placeId: ${placeId}`);
       const detailsUrl = `${googleMaps.placesDetailsUrl}?place_id=${placeId}&fields=photo,formatted_address&key=${mapsApiKey}`;
       const response = await axios.get(detailsUrl);
       const placeDetails = response.data.result;
 
       if (!placeDetails) {
-        console.log(`[API /api/placedetails] No details found for placeId: ${placeId}`);
         return { status: 404, body: { message: "Place details not found" } };
       }
 
@@ -104,7 +102,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       };
 
       placeCache.set(placeId, { data: resultData, expires: Date.now() + PLACE_CACHE_TTL_MS });
-      console.log(`[API /api/placedetails] Successfully fetched details for placeId: ${placeId}`);
       return { status: 200, body: { success: true, data: resultData } };
     })();
 

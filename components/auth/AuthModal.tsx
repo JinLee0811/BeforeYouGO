@@ -141,24 +141,26 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
             <div className='text-center'>
               {showWelcomeBanner && (
                 <div className='mb-6 bg-gradient-to-r from-blue-500 to-purple-500 text-white p-4 rounded-lg shadow-lg'>
-                  <h4 className='text-lg font-bold mb-2'>🎉 환영합니다!</h4>
+                  <h4 className='text-lg font-bold mb-2'>🎉 Welcome!</h4>
                   <p className='text-sm'>
-                    회원가입을 축하드립니다! AI 상세 분석 1회 무료 이용권이 자동으로 지급되었습니다.
+                    Thanks for signing up. Your free detailed AI analysis credit is ready to use
+                    once you confirm your email.
                   </p>
                 </div>
               )}
               <CheckCircleIcon className='w-16 h-16 text-green-500 mx-auto mb-4' />
               <Dialog.Title className='text-xl font-bold text-gray-800 mb-3'>
-                이메일을 확인해주세요
+                Check your email
               </Dialog.Title>
               <p className='text-sm text-gray-600 mb-6'>
-                <strong className='text-gray-800'>{submittedEmail}</strong>로 인증 링크를
-                보냈습니다. 링크를 클릭하여 회원가입을 완료해주세요. 스팸 메일함도 확인해주세요.
+                We sent a confirmation link to{" "}
+                <strong className='text-gray-800'>{submittedEmail}</strong>. Click the link to
+                finish setting up your account. If you don&apos;t see it, check your spam folder.
               </p>
               <button
                 onClick={onClose}
                 className='w-full bg-blue-600 text-white rounded-lg py-2.5 px-4 text-sm font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out'>
-                닫기
+                Close
               </button>
             </div>
           ) : (

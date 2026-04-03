@@ -1,50 +1,10 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import axios from "axios";
-import { crawlReviews } from "../../lib/crawlReviews";
-import { googleMaps } from "../../lib/externalUrls";
+import { fetchReviewsFromPlaceDetails } from "../../lib/fetchPlaceReviews";
 import { supabase } from "../../lib/supabaseClient";
 import { consumeAnalysisQuota } from "../../lib/apiUsageQuota";
 import { ApiResponse, Review } from "../../types";
 
-const RATE_LIMIT_WINDOW_MS = 5000;
-const ipUsageMap = new Map<string, number>();
 const inFlight = new Set<string>();
-const mapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-
-const fetchReviewsFromPlaces = async (placeId: string): Promise<Review[]> => {
-  if (!mapsApiKey) return [];
-  const detailsUrl = `${googleMaps.placesDetailsUrl}?place_id=${placeId}&fields=reviews&key=${mapsApiKey}`;
-  const response = await axios.get(detailsUrl);
-  const reviews = response.data?.result?.reviews;
-  if (!Array.isArray(reviews)) return [];
-  return reviews
-    .map((review: { text?: string; rating?: number; relative_time_description?: string }) => ({
-      text: (review.text || "").trim(),
-      rating: typeof review.rating === "number" ? review.rating : 0,
-      date: (review.relative_time_description || "").trim(),
-    }))
-    .filter((review) => review.text && review.rating > 0);
-};
-
-const getClientIp = (req: NextApiRequest) => {
-  const forwarded = req.headers["x-forwarded-for"];
-  if (typeof forwarded === "string" && forwarded.length > 0) {
-    return forwarded.split(",")[0].trim();
-  }
-  if (Array.isArray(forwarded) && forwarded.length > 0) {
-    return forwarded[0];
-  }
-  return req.socket?.remoteAddress || "unknown";
-};
-
-const isIpRateLimited = (ip: string) => {
-  const lastUsed = ipUsageMap.get(ip);
-  return !!lastUsed && Date.now() - lastUsed < RATE_LIMIT_WINDOW_MS;
-};
-
-const markIpUsed = (ip: string) => {
-  ipUsageMap.set(ip, Date.now());
-};
 
 export default async function handler(
   req: NextApiRequest,
@@ -83,37 +43,43 @@ export default async function handler(
     if (authError || !authData?.user) {
       return res.status(401).json({ success: false, error: "Unauthorized" });
     }
-    const quotaResult = await consumeAnalysisQuota(authData.user.id);
+    const quotaResult = await consumeAnalysisQuota(authData.user.id, token, authData.user.email);
     if (!quotaResult.success) {
       if (quotaResult.error === "USAGE_LIMIT_EXCEEDED") {
         return res.status(429).json({
           success: false,
-          error: "Usage limit exceeded. Please upgrade your plan.",
+          error: "You have used all free analyses for today. Try again tomorrow or check pricing to upgrade.",
           code: "USAGE_LIMIT_EXCEEDED",
         });
       }
-      return res.status(500).json({ success: false, error: quotaResult.error });
-    }
-
-    const clientIp = getClientIp(req);
-    if (isIpRateLimited(clientIp)) {
-      return res.status(429).json({
+      if (quotaResult.error === "QUOTA_AUTH_FAILED") {
+        return res.status(401).json({ success: false, error: "Unauthorized", code: "QUOTA_AUTH_FAILED" });
+      }
+      const code =
+        quotaResult.error === "QUOTA_READ_FAILED"
+          ? "QUOTA_READ_FAILED"
+          : quotaResult.error === "QUOTA_UPDATE_FAILED"
+            ? "QUOTA_UPDATE_FAILED"
+            : "QUOTA_FAILED";
+      return res.status(503).json({
         success: false,
-        error: "Too many requests. Please wait a moment and try again.",
+        error:
+          "We couldn’t verify your analysis allowance right now. Please try again in a moment. If it keeps happening, try again later or check pricing.",
+        code,
       });
     }
 
     if (inFlight.has(effectiveUrl)) {
       return res.status(429).json({
         success: false,
-        error: "Crawling already in progress for this URL.",
+        error: "An analysis for this place is already in progress. Please try again shortly.",
+        code: "CRAWL_IN_FLIGHT",
       });
     }
     inFlight.add(effectiveUrl);
-    markIpUsed(clientIp);
     let reviews: Review[] = [];
     if (placeId) {
-      reviews = await fetchReviewsFromPlaces(placeId);
+      reviews = await fetchReviewsFromPlaceDetails(placeId);
     }
     if (!reviews || reviews.length === 0) {
       return res.status(404).json({
@@ -123,10 +89,10 @@ export default async function handler(
     }
     return res.status(200).json({ success: true, data: reviews });
   } catch (error) {
-    console.error("Crawling error:", error);
+    console.error("Crawl API error:", error);
     return res.status(500).json({
       success: false,
-      error: "Failed to crawl reviews",
+      error: "Failed to fetch reviews",
     });
   } finally {
     if (effectiveUrl) {
